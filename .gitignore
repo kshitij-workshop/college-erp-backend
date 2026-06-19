@@ -1,0 +1,6 @@
+target/
+src/main/resources/application.yaml
+.idea/
+*.iml
+.DS_Store
+EOF
