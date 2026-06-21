@@ -1,4 +1,4 @@
-package com.kshitij.collegeerp.modules.student.service;
+package com.kshitij.collegeerp.models.student.service;
 
 
 import com.kshitij.collegeerp.academic.batch.entity.Batch;
@@ -12,11 +12,11 @@ import com.kshitij.collegeerp.academic.section.repository.SectionRepository;
 import com.kshitij.collegeerp.academic.semester.entity.Semester;
 import com.kshitij.collegeerp.academic.semester.repository.SemesterRepository;
 import com.kshitij.collegeerp.common.exception.ResourceNotFoundException;
-import com.kshitij.collegeerp.modules.student.dto.StudentRequest;
-import com.kshitij.collegeerp.modules.student.dto.StudentResponse;
-import com.kshitij.collegeerp.modules.student.entity.Student;
-import com.kshitij.collegeerp.modules.student.entity.StudentStatus;
-import com.kshitij.collegeerp.modules.student.repository.StudentRepository;
+import com.kshitij.collegeerp.models.student.dto.StudentRequest;
+import com.kshitij.collegeerp.models.student.dto.StudentResponse;
+import com.kshitij.collegeerp.models.student.entity.Student;
+import com.kshitij.collegeerp.models.student.entity.StudentStatus;
+import com.kshitij.collegeerp.models.student.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

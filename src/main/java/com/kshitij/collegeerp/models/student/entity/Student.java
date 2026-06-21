@@ -1,4 +1,4 @@
-package com.kshitij.collegeerp.modules.student.entity;
+package com.kshitij.collegeerp.models.student.entity;
 
 
 import com.kshitij.collegeerp.academic.batch.entity.Batch;

@@ -1,8 +1,8 @@
-package com.kshitij.collegeerp.modules.student.dto;
+package com.kshitij.collegeerp.models.student.dto;
 
 
-import com.kshitij.collegeerp.modules.student.entity.Gender;
-import com.kshitij.collegeerp.modules.student.entity.StudentStatus;
+import com.kshitij.collegeerp.models.student.entity.Gender;
+import com.kshitij.collegeerp.models.student.entity.StudentStatus;
 import lombok.*;
 
 import java.time.LocalDate;

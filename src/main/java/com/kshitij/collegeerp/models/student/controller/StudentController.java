@@ -1,10 +1,10 @@
-package com.kshitij.collegeerp.modules.student.controller;
+package com.kshitij.collegeerp.models.student.controller;
 
 import com.kshitij.collegeerp.common.response.ApiResponse;
-import com.kshitij.collegeerp.modules.student.dto.StudentRequest;
-import com.kshitij.collegeerp.modules.student.dto.StudentResponse;
-import com.kshitij.collegeerp.modules.student.entity.StudentStatus;
-import com.kshitij.collegeerp.modules.student.service.StudentService;
+import com.kshitij.collegeerp.models.student.dto.StudentRequest;
+import com.kshitij.collegeerp.models.student.dto.StudentResponse;
+import com.kshitij.collegeerp.models.student.entity.StudentStatus;
+import com.kshitij.collegeerp.models.student.service.StudentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

@@ -1,6 +1,6 @@
-package com.kshitij.collegeerp.modules.student.dto;
+package com.kshitij.collegeerp.models.student.dto;
 
-import com.kshitij.collegeerp.modules.student.entity.Gender;
+import com.kshitij.collegeerp.models.student.entity.Gender;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

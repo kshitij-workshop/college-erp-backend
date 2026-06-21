@@ -1,6 +1,6 @@
-package com.kshitij.collegeerp.modules.student.repository;
+package com.kshitij.collegeerp.models.student.repository;
 
-import com.kshitij.collegeerp.modules.student.entity.Student;
+import com.kshitij.collegeerp.models.student.entity.Student;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
