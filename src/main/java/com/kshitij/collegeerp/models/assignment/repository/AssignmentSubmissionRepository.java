@@ -1,5 +1,6 @@
-package com.kshitij.collegeerp.models.assignment.entity;
+package com.kshitij.collegeerp.models.assignment.repository;
 
+import com.kshitij.collegeerp.models.assignment.entity.AssignmentSubmission;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
