@@ -2,7 +2,6 @@ package com.kshitij.collegeerp.models.faculty.dto;
 
 import com.kshitij.collegeerp.models.faculty.entity.Designation;
 import com.kshitij.collegeerp.models.faculty.entity.FacultyStatus;
-import com.kshitij.collegeerp.models.faculty.entity.Gender;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -12,11 +11,9 @@ import java.time.LocalDate;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class FacultyResponse {
+public class FacultySummaryResponse {
 
     private Long id;
-
-    private Long userId;
 
     // Identity
 
@@ -30,25 +27,9 @@ public class FacultyResponse {
 
     private String phone;
 
-    private Gender gender;
-
-    private LocalDate dateOfBirth;
-
-    private String bloodGroup;
-
-    private String address;
-
-    private String photoUrl;
-
     // Professional Information
 
     private Designation designation;
-
-    private String qualification;
-
-    private String specialization;
-
-    private Integer experienceYears;
 
     private LocalDate joiningDate;
 

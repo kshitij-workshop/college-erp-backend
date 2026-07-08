@@ -3,15 +3,14 @@ package com.kshitij.collegeerp.auth.controller;
 import com.kshitij.collegeerp.auth.dto.AuthResponse;
 import com.kshitij.collegeerp.auth.dto.LoginRequest;
 import com.kshitij.collegeerp.auth.dto.RegisterRequest;
+import com.kshitij.collegeerp.auth.dto.UserProfileResponse;
 import com.kshitij.collegeerp.auth.service.AuthService;
 import com.kshitij.collegeerp.common.response.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -32,5 +31,17 @@ public class AuthController {
                 ApiResponse.success("Login Successful", authService.login(request))
         );
 
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<UserProfileResponse>> me(
+            Authentication authentication) {
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Current logged in user",
+                        authService.getCurrentUser(authentication)
+                )
+        );
     }
 }

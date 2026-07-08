@@ -11,16 +11,21 @@ import com.kshitij.collegeerp.academic.section.entity.Section;
 import com.kshitij.collegeerp.academic.section.repository.SectionRepository;
 import com.kshitij.collegeerp.academic.semester.entity.Semester;
 import com.kshitij.collegeerp.academic.semester.repository.SemesterRepository;
+import com.kshitij.collegeerp.common.exception.BadRequestException;
 import com.kshitij.collegeerp.common.exception.ResourceNotFoundException;
 import com.kshitij.collegeerp.models.student.dto.StudentRequest;
 import com.kshitij.collegeerp.models.student.dto.StudentResponse;
 import com.kshitij.collegeerp.models.student.entity.Student;
 import com.kshitij.collegeerp.models.student.entity.StudentStatus;
 import com.kshitij.collegeerp.models.student.repository.StudentRepository;
+import com.kshitij.collegeerp.models.student.specification.StudentSpecification;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.data.domain.Pageable;
 import java.time.LocalDate;
 import java.time.Year;
 import java.util.List;
@@ -39,7 +44,7 @@ public class StudentService {
     @Transactional
     public StudentResponse create(StudentRequest request) {
         if (studentRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already registered: " + request.getEmail());
+            throw new BadRequestException("Email already registered: " + request.getEmail());
         }
 
         Department department = departmentRepository.findById(request.getDepartmentId())
@@ -49,14 +54,14 @@ public class StudentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Program not found"));
 
         if (!program.getDepartment().getId().equals(department.getId())) {
-            throw new RuntimeException("Program does not belong to the selected department");
+            throw new BadRequestException("Program does not belong to the selected department");
         }
 
         Batch batch = batchRepository.findById(request.getBatchId())
                 .orElseThrow(() -> new ResourceNotFoundException("Batch not found"));
 
         if (!batch.getProgram().getId().equals(program.getId())) {
-            throw new RuntimeException("Batch does not belong to the selected program");
+            throw new RuntimeException("Batch does not belong to the selected department");
         }
 
         Semester semester = semesterRepository.findById(request.getSemesterId())
@@ -101,11 +106,30 @@ public class StudentService {
         return mapToResponse(saved);
     }
 
-    public List<StudentResponse> getAll() {
-        return studentRepository.findAll()
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
+    public Page<StudentResponse> getAllStudents(
+            Pageable pageable,
+            String keyword,
+            Long departmentId,
+            Long programId,
+            Long batchId,
+            Long semesterId,
+            Long sectionId,
+            StudentStatus status
+    ) {
+
+        return studentRepository.findAll(
+                StudentSpecification.search(
+                        keyword,
+                        departmentId,
+                        programId,
+                        batchId,
+                        semesterId,
+                        sectionId,
+                        status
+                ),
+                pageable
+        ).map(this::mapToResponse);
+
     }
 
     public List<StudentResponse> getBySection(Long sectionId) {

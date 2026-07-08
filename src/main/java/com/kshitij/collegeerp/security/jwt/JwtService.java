@@ -1,5 +1,6 @@
 package com.kshitij.collegeerp.security.jwt;
 
+import com.kshitij.collegeerp.auth.entity.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
@@ -25,10 +26,12 @@ public class JwtService {
     @Value("${jwt.access-token-expiry}")
     private Long accessTokenExpiry;
 
-    public String generateAccessToken(UserDetails userDetails) {
+    public String generateAccessToken(User user) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("role", userDetails.getAuthorities().iterator().next().getAuthority());
-        return buildToken(claims, userDetails.getUsername(), accessTokenExpiry);
+        claims.put("role", user.getRole());
+        claims.put("id", user.getId());
+        claims.put("fullName", user.getFullName());
+        return buildToken(claims, user.getUsername(), accessTokenExpiry);
 
     }
 

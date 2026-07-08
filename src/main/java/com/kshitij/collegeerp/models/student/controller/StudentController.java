@@ -7,6 +7,9 @@ import com.kshitij.collegeerp.models.student.entity.StudentStatus;
 import com.kshitij.collegeerp.models.student.service.StudentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -29,13 +32,48 @@ public class StudentController {
                         studentService.create(request)));
     }
 
+
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'FACULTY', 'HOD')")
-    public ResponseEntity<ApiResponse<List<StudentResponse>>> getAll() {
+    @PreAuthorize("hasAnyRole('ADMIN','HOD','FACULTY')")
+    public ResponseEntity<ApiResponse<Page<StudentResponse>>> getAllStudents(
+
+            @RequestParam(defaultValue = "") String keyword,
+
+            @RequestParam(required = false) Long departmentId,
+
+            @RequestParam(required = false) Long programId,
+
+            @RequestParam(required = false) Long batchId,
+
+            @RequestParam(required = false) Long semesterId,
+
+            @RequestParam(required = false) Long sectionId,
+
+            @RequestParam(required = false) StudentStatus status,
+
+            @PageableDefault(size = 10)
+            Pageable pageable
+
+    ) {
+
         return ResponseEntity.ok(
-                ApiResponse.success("Students fetched successfully",
-                        studentService.getAll()));
+                ApiResponse.success(
+                        "Students fetched successfully",
+                        studentService.getAllStudents(
+                                pageable,
+                                keyword,
+                                departmentId,
+                                programId,
+                                batchId,
+                                semesterId,
+                                sectionId,
+                                status
+                        )
+                )
+        );
     }
+
+
 
     @GetMapping("/section/{sectionId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'FACULTY', 'HOD')")

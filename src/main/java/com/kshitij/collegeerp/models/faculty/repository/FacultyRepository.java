@@ -1,28 +1,43 @@
 package com.kshitij.collegeerp.models.faculty.repository;
 
+import com.kshitij.collegeerp.academic.department.entity.Department;
 import com.kshitij.collegeerp.models.faculty.entity.Designation;
 import com.kshitij.collegeerp.models.faculty.entity.Faculty;
 import com.kshitij.collegeerp.models.faculty.entity.FacultyStatus;
-import jakarta.validation.constraints.NotNull;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-import java.util.List;
 import java.util.Optional;
 
-public interface FacultyRepository extends JpaRepository<Faculty, Long> {
-    Optional<Faculty> findByEmployeeCode(String employeeCode);
-    Optional<Faculty> findByEmail(String email);
+public interface FacultyRepository
+        extends JpaRepository<Faculty, Long>,
+        JpaSpecificationExecutor<Faculty> {
+
     boolean existsByEmail(String email);
+
     boolean existsByEmployeeCode(String employeeCode);
-    List<Faculty> findByDepartmentId(Long departmentId);
 
-    boolean existsByDepartmentIdAndDesignationAndStatus(
-            @NotNull(message = "Department ID is required")
-            Long departmentId,
-            Designation designation, FacultyStatus facultyStatus);
+    Optional<Faculty> findByEmployeeCode(String employeeCode);
 
-    boolean existsByDepartmentIdAndDesignationAndStatusAndIdNot(
-            @NotNull(message = "Department ID is required")
-            Long departmentId, Designation designation,
-            FacultyStatus facultyStatus, Long id);
+    Optional<Faculty> findByUserId(Long userId);
+
+    long countByStatus(FacultyStatus status);
+
+    long countByDepartment(Department department);
+
+    long countByDesignation(Designation designation);
+
+    boolean existsByDepartmentAndDesignationAndStatus(
+            Department department,
+            Designation designation,
+            FacultyStatus status
+    );
+
+    boolean existsByDepartmentAndDesignationAndStatusAndIdNot(
+            Department department,
+            Designation designation,
+            FacultyStatus status,
+            Long id
+    );
+
 }

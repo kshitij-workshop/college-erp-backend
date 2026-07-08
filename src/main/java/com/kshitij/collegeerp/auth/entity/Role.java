@@ -5,6 +5,6 @@ public enum Role {
     STUDENT,
     FACULTY,
     HOD,
-    ACCOUNTANT,
+    EXAM_CELL,
     LIBRARIAN
 }

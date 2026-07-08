@@ -1,84 +1,175 @@
 package com.kshitij.collegeerp.models.faculty.controller;
 
 import com.kshitij.collegeerp.common.response.ApiResponse;
+import com.kshitij.collegeerp.common.response.PageResponse;
 import com.kshitij.collegeerp.models.faculty.dto.FacultyRequest;
 import com.kshitij.collegeerp.models.faculty.dto.FacultyResponse;
+import com.kshitij.collegeerp.models.faculty.dto.FacultySummaryResponse;
+import com.kshitij.collegeerp.models.faculty.entity.Designation;
 import com.kshitij.collegeerp.models.faculty.entity.FacultyStatus;
 import com.kshitij.collegeerp.models.faculty.service.FacultyService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/faculty")
+@PreAuthorize("hasAnyRole('ADMIN')")
 @RequiredArgsConstructor
 public class FacultyController {
 
     private final FacultyService facultyService;
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<FacultyResponse>> create(
-            @Valid @RequestBody FacultyRequest request) {
-        return ResponseEntity.ok(
-                ApiResponse.success("Faculty created successfully",
-                        facultyService.create(request)));
-    }
+    public ResponseEntity<ApiResponse<FacultyResponse>> createFaculty(
 
-    @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'HOD')")
-    public ResponseEntity<ApiResponse<List<FacultyResponse>>> getAll() {
-        return ResponseEntity.ok(
-                ApiResponse.success("Faculty list fetched successfully",
-                        facultyService.getAll()));
-    }
+            @Valid @RequestBody FacultyRequest request
 
-    @GetMapping("/department/{departmentId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'HOD')")
-    public ResponseEntity<ApiResponse<List<FacultyResponse>>> getByDepartment(
-            @PathVariable Long departmentId) {
-        return ResponseEntity.ok(
-                ApiResponse.success("Faculty fetched successfully",
-                        facultyService.getByDepartment(departmentId)));
+    ) {
+
+        FacultyResponse response = facultyService.createFaculty(request);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+
+                .body(
+
+                        ApiResponse.success(
+
+                                "Faculty created successfully.",
+
+                                response
+
+                        )
+
+                );
+
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<FacultyResponse>> getById(
-            @PathVariable Long id) {
+    public ResponseEntity<ApiResponse<FacultyResponse>> getFacultyById(
+
+            @PathVariable Long id
+
+    ) {
+
+        FacultyResponse response = facultyService.getFacultyById(id);
+
         return ResponseEntity.ok(
-                ApiResponse.success("Faculty fetched successfully",
-                        facultyService.getById(id)));
+
+                ApiResponse.success(
+
+                        "Faculty fetched successfully.",
+
+                        response
+
+                )
+
+        );
+
+    }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<PageResponse<FacultySummaryResponse>>> getAllFaculty(
+
+            @RequestParam(defaultValue = "") String search,
+
+            @RequestParam(required = false) Long departmentId,
+
+            @RequestParam(required = false) Designation designation,
+
+            @RequestParam(required = false) FacultyStatus status,
+
+            @RequestParam(defaultValue = "0") int page,
+
+            @RequestParam(defaultValue = "10") int size
+
+    ) {
+
+        Pageable pageable = PageRequest.of(page, size);
+
+        PageResponse<FacultySummaryResponse> response =
+
+                facultyService.getAllFaculty(
+
+                        search,
+
+                        departmentId,
+
+                        designation,
+
+                        status,
+
+                        pageable
+
+                );
+
+        return ResponseEntity.ok(
+
+                ApiResponse.success(
+
+                        "Faculty fetched successfully.",
+
+                        response
+
+                )
+
+        );
+
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<FacultyResponse>> update(
-            @PathVariable Long id,
-            @Valid @RequestBody FacultyRequest request) {
-        return ResponseEntity.ok(
-                ApiResponse.success("Faculty updated successfully",
-                        facultyService.update(id, request)));
-    }
+    public ResponseEntity<ApiResponse<FacultyResponse>> updateFaculty(
 
-    @PatchMapping("/{id}/status")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<Void>> updateStatus(
             @PathVariable Long id,
-            @RequestParam FacultyStatus status) {
-        facultyService.updateStatus(id, status);
+
+            @Valid @RequestBody FacultyRequest request
+
+    ) {
+
+        FacultyResponse response =
+
+                facultyService.updateFaculty(id, request);
+
         return ResponseEntity.ok(
-                ApiResponse.success("Faculty status updated successfully", null));
+
+                ApiResponse.success(
+
+                        "Faculty updated successfully.",
+
+                        response
+
+                )
+
+        );
+
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
-        facultyService.delete(id);
+    public ResponseEntity<ApiResponse<Void>> deleteFaculty(
+
+            @PathVariable Long id
+
+    ) {
+
+        facultyService.deleteFaculty(id);
+
         return ResponseEntity.ok(
-                ApiResponse.success("Faculty deleted successfully", null));
+
+                ApiResponse.success(
+
+                        "Faculty deleted successfully.",
+
+                        null
+
+                )
+
+        );
+
     }
+
 }

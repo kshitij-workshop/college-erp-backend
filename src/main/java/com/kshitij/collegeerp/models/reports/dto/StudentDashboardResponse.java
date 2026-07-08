@@ -4,7 +4,7 @@ import lombok.*;
 
 @Getter @Setter @Builder
 @NoArgsConstructor @AllArgsConstructor
-public class StudentDashboardResponse {
+public class StudentDashboardResponse implements DashboardResponse{
     private String studentName;
     private String enrollmentNumber;
     private String programName;

@@ -12,4 +12,6 @@ public interface FeeInvoiceRepository extends JpaRepository<FeeInvoice, Long> {
     List<FeeInvoice> findByPaymentStatusIn(List<PaymentStatus> statuses);
     Optional<FeeInvoice> findByInvoiceNumber(String invoiceNumber);
     boolean existsByStudentIdAndFeeStructureId(Long studentId, Long feeStructureId);
+
+    long countByPaymentStatus(PaymentStatus paymentStatus);
 }

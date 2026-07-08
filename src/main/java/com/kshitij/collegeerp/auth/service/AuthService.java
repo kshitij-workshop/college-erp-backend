@@ -3,6 +3,7 @@ package com.kshitij.collegeerp.auth.service;
 import com.kshitij.collegeerp.auth.dto.AuthResponse;
 import com.kshitij.collegeerp.auth.dto.LoginRequest;
 import com.kshitij.collegeerp.auth.dto.RegisterRequest;
+import com.kshitij.collegeerp.auth.dto.UserProfileResponse;
 import com.kshitij.collegeerp.auth.entity.RefreshToken;
 import com.kshitij.collegeerp.auth.entity.User;
 import com.kshitij.collegeerp.auth.repository.RefreshTokenRepository;
@@ -13,8 +14,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.security.Security;
 
 @Service
 @RequiredArgsConstructor
@@ -66,6 +71,21 @@ public class AuthService {
         String refreshToken = createRefreshToken(user);
 
         return buildAuthResponse(user, accessToken, refreshToken);
+    }
+
+    public UserProfileResponse getCurrentUser(Authentication authentication) {
+        String email = authentication.getName();
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return UserProfileResponse.builder()
+                .id(user.getId())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .role(user.getRole().name())
+                .profilePicture(user.getProfilePicture())
+                .build();
     }
 
     private String createRefreshToken(User user) {

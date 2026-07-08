@@ -6,6 +6,7 @@ import com.kshitij.collegeerp.academic.department.entity.Department;
 import com.kshitij.collegeerp.academic.program.entity.Program;
 import com.kshitij.collegeerp.academic.section.entity.Section;
 import com.kshitij.collegeerp.academic.semester.entity.Semester;
+import com.kshitij.collegeerp.auth.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -21,6 +22,10 @@ public class Student {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", unique = true)
+    private User user;
 
     // Identity
 
