@@ -13,4 +13,6 @@ public class BatchResponse {
     private Long programId;
     private String programName;
     private boolean active;
+    private Long departmentId;
+    private String departmentName;
 }

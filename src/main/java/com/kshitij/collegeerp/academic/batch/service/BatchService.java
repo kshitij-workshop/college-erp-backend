@@ -4,6 +4,7 @@ import com.kshitij.collegeerp.academic.batch.dto.BatchRequest;
 import com.kshitij.collegeerp.academic.batch.dto.BatchResponse;
 import com.kshitij.collegeerp.academic.batch.entity.Batch;
 import com.kshitij.collegeerp.academic.batch.repository.BatchRepository;
+import com.kshitij.collegeerp.academic.department.entity.Department;
 import com.kshitij.collegeerp.academic.program.entity.Program;
 import com.kshitij.collegeerp.academic.program.repository.ProgramRepository;
 import com.kshitij.collegeerp.common.exception.ResourceNotFoundException;
@@ -70,7 +71,7 @@ public class BatchService {
 
         Program program = programRepository.findById(request.getProgramId())
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Protam not found with id " + request.getProgramId()
+                        "Program not found with id " + request.getProgramId()
                 ));
 
         batch.setName(request.getName());
@@ -105,15 +106,27 @@ public class BatchService {
 
 
     private BatchResponse mapToResponse(Batch batch) {
+
+        Program program = batch.getProgram();
+
+        Department department = program.getDepartment();
+
         return BatchResponse.builder()
                 .id(batch.getId())
                 .name(batch.getName())
                 .startYear(batch.getStartYear())
                 .endYear(batch.getEndYear())
-                .programId(batch.getProgram().getId())
-                .programName(batch.getProgram().getName())
+
+                .programId(program.getId())
+                .programName(program.getName())
+
+                .departmentId(department.getId())
+                .departmentName(department.getName())
+
                 .active(batch.isActive())
                 .build();
     }
+
+
 
 }
