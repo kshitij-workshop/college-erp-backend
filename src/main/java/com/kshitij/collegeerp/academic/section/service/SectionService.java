@@ -1,5 +1,8 @@
 package com.kshitij.collegeerp.academic.section.service;
 
+import com.kshitij.collegeerp.academic.batch.entity.Batch;
+import com.kshitij.collegeerp.academic.department.entity.Department;
+import com.kshitij.collegeerp.academic.program.entity.Program;
 import com.kshitij.collegeerp.academic.section.dto.SectionRequest;
 import com.kshitij.collegeerp.academic.section.dto.SectionResponse;
 import com.kshitij.collegeerp.academic.section.entity.Section;
@@ -24,14 +27,19 @@ public class SectionService {
     private final SectionRepository sectionRepository;
 
     @Transactional
-    public SectionResponse create(
-            @Valid @RequestBody SectionRequest request) {
-        if (sectionRepository.existsByNameAndSemesterId(request.getName(), request.getSemesterId())) {
-            throw new RuntimeException("Section " + request.getName() + " already exists for this semester");
+    public SectionResponse create(SectionRequest request) {
+
+        if (sectionRepository.existsByNameAndSemesterId(
+                request.getName(),
+                request.getSemesterId())) {
+
+            throw new IllegalArgumentException(
+                    "Section " + request.getName()
+                            + " already exists for this semester."
+            );
         }
 
-        Semester semester = semesterRepository.findById(request.getSemesterId())
-                .orElseThrow(() -> new ResourceNotFoundException("Semester not found with id " + request.getSemesterId()));
+        Semester semester = getSemester(request.getSemesterId());
 
         Section section = Section.builder()
                 .name(request.getName())
@@ -65,19 +73,34 @@ public class SectionService {
     }
 
     @Transactional
-    public SectionResponse update(Long id, SectionRequest request) {
+    public SectionResponse update(
+            Long id,
+            SectionRequest request
+    ) {
+
         Section section = findSectionById(id);
 
-        Semester semester = semesterRepository.findById(request.getSemesterId())
-                .orElseThrow(() -> new ResourceNotFoundException("Semester not found with id " + request.getSemesterId()));
+        if ((!section.getName().equalsIgnoreCase(request.getName())
+                || !section.getSemester().getId().equals(request.getSemesterId()))
+                && sectionRepository.existsByNameAndSemesterId(
+                request.getName(),
+                request.getSemesterId())) {
+
+            throw new IllegalArgumentException(
+                    "Section " + request.getName()
+                            + " already exists for this semester."
+            );
+        }
+
+        Semester semester = getSemester(request.getSemesterId());
 
         section.setName(request.getName());
         section.setMaxStrength(request.getMaxStrength());
         section.setSemester(semester);
 
         Section updated = sectionRepository.save(section);
-        return mapToResponse(updated);
 
+        return mapToResponse(updated);
     }
 
     @Transactional
@@ -99,13 +122,46 @@ public class SectionService {
     }
 
     private SectionResponse mapToResponse(Section section) {
+
+        Semester semester = section.getSemester();
+
+        Batch batch = semester.getBatch();
+
+        Program program = batch.getProgram();
+
+        Department department = program.getDepartment();
+
         return SectionResponse.builder()
+
                 .id(section.getId())
+
                 .name(section.getName())
+
                 .maxStrength(section.getMaxStrength())
-                .semesterId(section.getSemester().getId())
-                .semesterNumber(section.getSemester().getSemesterNumber())
+
+                .departmentId(department.getId())
+                .departmentName(department.getName())
+
+                .programId(program.getId())
+                .programName(program.getName())
+
+                .batchId(batch.getId())
+                .batchName(batch.getName())
+
+                .semesterId(semester.getId())
+                .semesterNumber(semester.getSemesterNumber())
+
                 .active(section.isActive())
+
                 .build();
+    }
+
+    private Semester getSemester(Long semesterId) {
+
+        return semesterRepository.findById(semesterId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Semester not found with id " + semesterId
+                ));
+
     }
 }

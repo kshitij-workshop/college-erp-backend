@@ -1,6 +1,10 @@
 package com.kshitij.collegeerp.models.student.dto;
 
+import com.kshitij.collegeerp.models.student.entity.BloodGroup;
 import com.kshitij.collegeerp.models.student.entity.Gender;
+import com.kshitij.collegeerp.models.student.entity.StudentStatus;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -29,7 +33,12 @@ public class StudentRequest {
 
         private LocalDate dateOfBirth;
 
-        private String bloodGroup;
+        private BloodGroup bloodGroup;
+
+        @NotBlank(message = "Roll no. is required")
+        private String rollNumber;
+
+        private String registrationNumber;
 
         private String address;
 
@@ -51,6 +60,9 @@ public class StudentRequest {
 
         @NotNull(message = "Section ID is required")
         private Long sectionId;
+
+        @NotNull(message = "Student status is required")
+        private StudentStatus studentStatus;
 
         private LocalDate admissionDate;
 }

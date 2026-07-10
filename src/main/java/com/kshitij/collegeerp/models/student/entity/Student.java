@@ -32,8 +32,11 @@ public class Student {
     @Column(nullable = false, unique = true)
     private String enrollmentNumber;
 
-    @Column(unique = true, nullable = true)
+    @Column(unique = true, nullable = false)
     private String rollNumber;
+
+    @Column(unique = true, nullable = true)
+    private String registrationNumber;
 
     // Personal Info
 
@@ -51,10 +54,13 @@ public class Student {
 
     private LocalDate dateOfBirth;
 
-    private String bloodGroup;
+    @Enumerated(EnumType.STRING)
+    private BloodGroup bloodGroup;
 
     @Column(length = 500)
     private String address;
+
+
 
     // Guardian info
     private String guardianName;

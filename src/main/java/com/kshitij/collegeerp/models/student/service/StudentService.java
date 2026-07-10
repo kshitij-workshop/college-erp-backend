@@ -11,6 +11,9 @@ import com.kshitij.collegeerp.academic.section.entity.Section;
 import com.kshitij.collegeerp.academic.section.repository.SectionRepository;
 import com.kshitij.collegeerp.academic.semester.entity.Semester;
 import com.kshitij.collegeerp.academic.semester.repository.SemesterRepository;
+import com.kshitij.collegeerp.auth.entity.Role;
+import com.kshitij.collegeerp.auth.entity.User;
+import com.kshitij.collegeerp.auth.repository.UserRepository;
 import com.kshitij.collegeerp.common.exception.BadRequestException;
 import com.kshitij.collegeerp.common.exception.ResourceNotFoundException;
 import com.kshitij.collegeerp.models.student.dto.StudentRequest;
@@ -22,6 +25,7 @@ import com.kshitij.collegeerp.models.student.specification.StudentSpecification;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,6 +44,8 @@ public class StudentService {
     private final BatchRepository batchRepository;
     private final SemesterRepository semesterRepository;
     private final SectionRepository sectionRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final UserRepository userRepository;
 
     @Transactional
     public StudentResponse create(StudentRequest request) {
@@ -79,11 +85,15 @@ public class StudentService {
         }
 
         String enrollmentNumber = generateEnrollmentNumber(department.getCode());
+        User user = createUser(request);
 
         Student student = Student.builder()
+                .user(user)
                 .enrollmentNumber(enrollmentNumber)
                 .fullName(request.getFullName())
                 .email(request.getEmail())
+                .rollNumber(request.getRollNumber())
+                .registrationNumber(request.getRegistrationNumber())
                 .phone(request.getPhone())
                 .gender(request.getGender())
                 .dateOfBirth(request.getDateOfBirth())
@@ -104,6 +114,19 @@ public class StudentService {
 
         Student saved = studentRepository.save(student);
         return mapToResponse(saved);
+    }
+
+    private User createUser(StudentRequest request) {
+        User user = User.builder()
+               .email(request.getEmail())
+                .password(passwordEncoder.encode("Student@123"))
+                .fullName(request.getFullName())
+                .role(Role.STUDENT)
+                .profilePicture(null)
+                .enabled(true)
+                .build();
+
+        return userRepository.save(user);
     }
 
     public Page<StudentResponse> getAllStudents(
@@ -180,6 +203,8 @@ public class StudentService {
         student.setFullName(request.getFullName());
         student.setEmail(request.getEmail());
         student.setPhone(request.getPhone());
+        student.setRollNumber(request.getRollNumber());
+        student.setRegistrationNumber(request.getRegistrationNumber());
         student.setGender(request.getGender());
         student.setDateOfBirth(request.getDateOfBirth());
         student.setBloodGroup(request.getBloodGroup());
@@ -226,6 +251,7 @@ public class StudentService {
                 .id(student.getId())
                 .enrollmentNumber(student.getEnrollmentNumber())
                 .rollNumber(student.getRollNumber())
+                .registrationNumber(student.getRegistrationNumber())
                 .fullName(student.getFullName())
                 .email(student.getEmail())
                 .phone(student.getPhone())
@@ -251,4 +277,7 @@ public class StudentService {
                 .admissionDate(student.getAdmissionDate())
                 .build();
     }
+
+
+
 }

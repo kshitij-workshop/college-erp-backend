@@ -1,6 +1,7 @@
 package com.kshitij.collegeerp.models.student.dto;
 
 
+import com.kshitij.collegeerp.models.student.entity.BloodGroup;
 import com.kshitij.collegeerp.models.student.entity.Gender;
 import com.kshitij.collegeerp.models.student.entity.StudentStatus;
 import lombok.*;
@@ -13,12 +14,13 @@ public class StudentResponse {
     private Long id;
     private String enrollmentNumber;
     private String rollNumber;
+    private String registrationNumber;
     private String fullName;
     private String email;
     private String phone;
     private Gender gender;
     private LocalDate dateOfBirth;
-    private String bloodGroup;
+    private BloodGroup bloodGroup;
     private String address;
     private String guardianName;
     private String guardianPhone;
