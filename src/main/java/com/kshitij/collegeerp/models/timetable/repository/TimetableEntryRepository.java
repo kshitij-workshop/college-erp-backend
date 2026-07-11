@@ -3,19 +3,27 @@ package com.kshitij.collegeerp.models.timetable.repository;
 import com.kshitij.collegeerp.models.timetable.entity.DayOfWeek;
 import com.kshitij.collegeerp.models.timetable.entity.TimetableEntry;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import java.util.List;
 
-public interface TimetableEntryRepository extends JpaRepository<TimetableEntry, Long> {
+public interface TimetableEntryRepository extends JpaRepository<TimetableEntry, Long>,
+        JpaSpecificationExecutor<TimetableEntry> {
 
     // TimeTable of section
-    List<TimetableEntry> findBySubjectOfferingSectionIdAndAcademicSession(
-            Long sectionId, String academicSession);
+    List<TimetableEntry>
+    findBySubjectOfferingSectionIdAndAcademicSessionOrderByDayOfWeekAscTimeSlotStartTimeAsc(
+            Long sectionId,
+            String academicSession
+    );
 
     // Faculty's TimeTable
-    List<TimetableEntry> findBySubjectOfferingFacultyIdAndAcademicSession(
-            Long facultyId, String academicSession);
+    List<TimetableEntry>
+    findBySubjectOfferingFacultyIdAndAcademicSessionOrderByDayOfWeekAscTimeSlotStartTimeAsc(
+            Long facultyId,
+            String academicSession
+    );
 
     // Room conflict check
     boolean existsByDayOfWeekAndTimeSlotIdAndRoomIdAndAcademicSession(
@@ -31,4 +39,32 @@ public interface TimetableEntryRepository extends JpaRepository<TimetableEntry, 
     boolean existsByDayOfWeekAndTimeSlotIdAndSubjectOfferingSectionIdAndAcademicSession(
             DayOfWeek dayOfWeek, Long timeSlotId,
             Long sectionId, String academicSession);
+
+    boolean existsByRoomId(Long roomId);
+    boolean existsByTimeSlotId(Long timeSlotId);
+    List<TimetableEntry> findAllByOrderByDayOfWeekAscTimeSlotStartTimeAsc();
+
+    boolean existsByDayOfWeekAndTimeSlotIdAndRoomIdAndAcademicSessionAndIdNot(
+            DayOfWeek dayOfWeek,
+            Long timeSlotId,
+            Long roomId,
+            String academicSession,
+            Long id
+    );
+
+    boolean existsByDayOfWeekAndTimeSlotIdAndSubjectOfferingFacultyIdAndAcademicSessionAndIdNot(
+            DayOfWeek dayOfWeek,
+            Long timeSlotId,
+            Long facultyId,
+            String academicSession,
+            Long id
+    );
+
+    boolean existsByDayOfWeekAndTimeSlotIdAndSubjectOfferingSectionIdAndAcademicSessionAndIdNot(
+            DayOfWeek dayOfWeek,
+            Long timeSlotId,
+            Long sectionId,
+            String academicSession,
+            Long id
+    );
 }

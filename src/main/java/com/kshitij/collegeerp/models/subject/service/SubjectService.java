@@ -1,7 +1,10 @@
 package com.kshitij.collegeerp.models.subject.service;
 
+import com.kshitij.collegeerp.academic.department.entity.Department;
+import com.kshitij.collegeerp.academic.department.repository.DepartmentRepository;
 import com.kshitij.collegeerp.academic.program.entity.Program;
 import com.kshitij.collegeerp.academic.program.repository.ProgramRepository;
+import com.kshitij.collegeerp.academic.semester.entity.Semester;
 import com.kshitij.collegeerp.common.exception.ResourceNotFoundException;
 import com.kshitij.collegeerp.models.subject.dto.SubjectRequest;
 import com.kshitij.collegeerp.models.subject.dto.SubjectResponse;
@@ -28,7 +31,6 @@ public class SubjectService {
 
         Program program = programRepository.findById(request.getProgramId())
                 .orElseThrow(() -> new ResourceNotFoundException("Program not found"));
-
         if (request.getSemesterNumber() > program.getTotalSemesters()) {
             throw new RuntimeException("Semester number exceeds program's total semesters ("
                     + program.getTotalSemesters() + ")");

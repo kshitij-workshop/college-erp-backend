@@ -2,9 +2,12 @@ package com.kshitij.collegeerp.models.timetable.controller;
 
 import com.kshitij.collegeerp.common.response.ApiResponse;
 import com.kshitij.collegeerp.models.timetable.dto.*;
+import com.kshitij.collegeerp.models.timetable.service.RoomService;
+import com.kshitij.collegeerp.models.timetable.service.TimeSlotService;
 import com.kshitij.collegeerp.models.timetable.service.TimetableService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.apache.coyote.Response;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -17,24 +20,7 @@ import java.util.List;
 public class TimetableController {
 
     private final TimetableService timetableService;
-
-    // ─── Room ──────────────────────────────────────────────
-
-    @PostMapping("/rooms")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<RoomResponse>> addRoom(
-            @Valid @RequestBody RoomRequest request) {
-        return ResponseEntity.ok(
-                ApiResponse.success("Room added successfully",
-                        timetableService.addRoom(request)));
-    }
-
-    @GetMapping("/rooms")
-    public ResponseEntity<ApiResponse<List<RoomResponse>>> getAllRooms() {
-        return ResponseEntity.ok(
-                ApiResponse.success("Rooms fetched successfully",
-                        timetableService.getAllRooms()));
-    }
+    private final TimeSlotService timeSlotService;
 
     // ─── Time Slot ─────────────────────────────────────────
 
@@ -44,14 +30,40 @@ public class TimetableController {
             @Valid @RequestBody TimeSlotRequest request) {
         return ResponseEntity.ok(
                 ApiResponse.success("Time slot added successfully",
-                        timetableService.addTimeSlot(request)));
+                        timeSlotService.create(request)));
+    }
+
+    @PutMapping("/time-slots/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<TimeSlotResponse>> updateTimeSlot(
+            @PathVariable Long id,
+            @Valid @RequestBody TimeSlotRequest request) {
+        return ResponseEntity.ok(
+                ApiResponse.success("Time slot updated successfully",
+                        timeSlotService.update(id, request)));
     }
 
     @GetMapping("/time-slots")
     public ResponseEntity<ApiResponse<List<TimeSlotResponse>>> getAllTimeSlots() {
         return ResponseEntity.ok(
                 ApiResponse.success("Time slots fetched successfully",
-                        timetableService.getAllTimeSlots()));
+                        timeSlotService.getAll()));
+    }
+
+    @GetMapping("/time-slots/{id}")
+    public ResponseEntity<ApiResponse<TimeSlotResponse>> getTimeSlotById(@PathVariable Long id) {
+        return ResponseEntity.ok(
+                ApiResponse.success("Time slot fetched successfully", timeSlotService.getById(id))
+        );
+    }
+
+    @DeleteMapping("/time-slots/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> deleteTimeSlot(@PathVariable Long id) {
+        timeSlotService.delete(id);
+        return ResponseEntity.ok(
+                ApiResponse.success("Time Slot delted successfully", null)
+        );
     }
 
     // ─── Timetable Entry ───────────────────────────────────
@@ -63,6 +75,60 @@ public class TimetableController {
         return ResponseEntity.ok(
                 ApiResponse.success("Timetable entry created successfully",
                         timetableService.createEntry(request)));
+    }
+
+    @GetMapping("entries")
+    public ResponseEntity<ApiResponse<List<TimetableEntryResponse>>> getAllEntries(
+
+            @RequestParam(required = false) Long programId,
+
+            @RequestParam(required = false) Long semesterId,
+
+            @RequestParam(required = false) Long sectionId,
+
+            @RequestParam(required = false) Long facultyId,
+
+            @RequestParam(required = false) String academicSession
+    ) {
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Timetable fetched successfully",
+                        timetableService.getAllEntries(
+                                programId,
+                                semesterId,
+                                sectionId,
+                                facultyId,
+                                academicSession
+                        )
+                )
+        );
+    }
+
+    @GetMapping("/entries/{id}")
+    public ResponseEntity<ApiResponse<TimetableEntryResponse>> getEntryById(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Timetable entry fetched successfully",
+                        timetableService.getEntryById(id)
+                )
+        );
+    }
+
+    @PutMapping("/entries/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<TimetableEntryResponse>> updateEntry(
+            @PathVariable Long id,
+            @Valid @RequestBody TimetableEntryRequest request) {
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Timetable entry updated successfully",
+                        timetableService.updateEntry(id, request)
+                )
+        );
     }
 
     @GetMapping("/section/{sectionId}")

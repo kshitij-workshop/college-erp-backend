@@ -1,5 +1,6 @@
 package com.kshitij.collegeerp.models.subject.service;
 
+import com.kshitij.collegeerp.academic.section.dto.SectionResponse;
 import com.kshitij.collegeerp.academic.section.entity.Section;
 import com.kshitij.collegeerp.academic.section.repository.SectionRepository;
 import com.kshitij.collegeerp.common.exception.ResourceNotFoundException;
@@ -143,6 +144,9 @@ public class SubjectOfferingService {
                 .subjectCode(offering.getSubject().getCode())
                 .sectionId(offering.getSection().getId())
                 .sectionName(offering.getSection().getName())
+                .programId(offering.getSubject().getProgram().getId())
+                .programName(offering.getSubject().getProgram().getCode())
+                .semesterNumber(offering.getSection().getSemester().getSemesterNumber())
                 .facultyId(offering.getFaculty().getId())
                 .facultyName(offering.getFaculty().getFullName())
                 .academicSession(offering.getAcademicSession())

@@ -29,6 +29,7 @@ public class StudentResponse {
 
     private Long departmentId;
     private String departmentName;
+    private String departmentCode;
     private Long programId;
     private String programName;
     private Long batchId;

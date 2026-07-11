@@ -1,5 +1,7 @@
 package com.kshitij.collegeerp.models.subject.controller;
 
+import com.kshitij.collegeerp.academic.section.dto.SectionResponse;
+import com.kshitij.collegeerp.academic.section.service.SectionService;
 import com.kshitij.collegeerp.common.response.ApiResponse;
 import com.kshitij.collegeerp.models.subject.dto.SubjectOfferingRequest;
 import com.kshitij.collegeerp.models.subject.dto.SubjectOfferingResponse;
@@ -18,6 +20,7 @@ import java.util.List;
 public class SubjectOfferingController {
 
     private final SubjectOfferingService subjectOfferingService;
+    private final SectionService sectionService;
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")

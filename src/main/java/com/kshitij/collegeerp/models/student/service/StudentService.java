@@ -265,6 +265,7 @@ public class StudentService {
                 .photoUrl(student.getPhotoUrl())
                 .departmentId(student.getDepartment().getId())
                 .departmentName(student.getDepartment().getName())
+                .departmentCode(student.getDepartment().getCode())
                 .programId(student.getProgram().getId())
                 .programName(student.getProgram().getName())
                 .batchId(student.getBatch().getId())

@@ -23,4 +23,12 @@ public class TimetableEntryResponse {
     private String facultyName;
     private String sectionName;
     private String academicSession;
+    private Long facultyId;
+    private Long sectionId;
+
+    private Long programId;
+    private String programName;
+
+    private Long semesterId;
+    private Integer semesterNumber;
 }
