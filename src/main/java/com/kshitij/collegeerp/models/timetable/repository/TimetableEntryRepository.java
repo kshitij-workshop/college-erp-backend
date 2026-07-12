@@ -67,4 +67,9 @@ public interface TimetableEntryRepository extends JpaRepository<TimetableEntry, 
             String academicSession,
             Long id
     );
+
+    List<TimetableEntry> findBySubjectOfferingFacultyEmailAndDayOfWeekOrderByTimeSlotStartTime(
+            String email,
+            DayOfWeek dayOfWeek
+    );
 }

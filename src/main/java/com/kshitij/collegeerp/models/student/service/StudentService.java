@@ -84,12 +84,11 @@ public class StudentService {
             throw new RuntimeException("Section does not belong to the selected semester");
         }
 
-        String enrollmentNumber = generateEnrollmentNumber(department.getCode());
         User user = createUser(request);
 
         Student student = Student.builder()
                 .user(user)
-                .enrollmentNumber(enrollmentNumber)
+
                 .fullName(request.getFullName())
                 .email(request.getEmail())
                 .rollNumber(request.getRollNumber())
@@ -239,17 +238,10 @@ public class StudentService {
                         "Student not found with id: " + id));
     }
 
-    private String generateEnrollmentNumber(String departmentCode) {
-        int year = Year.now().getValue();
-        long count = studentRepository.count() + 1;
-        return String.format("%d%s%04d", year, departmentCode, count);
-        // Example: 2026CSE0001
-    }
 
     private StudentResponse mapToResponse(Student student) {
         return StudentResponse.builder()
                 .id(student.getId())
-                .enrollmentNumber(student.getEnrollmentNumber())
                 .rollNumber(student.getRollNumber())
                 .registrationNumber(student.getRegistrationNumber())
                 .fullName(student.getFullName())

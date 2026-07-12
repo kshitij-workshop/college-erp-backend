@@ -141,7 +141,6 @@ public class ReportsService {
 
         return StudentDashboardResponse.builder()
                 .studentName(student.getFullName())
-                .enrollmentNumber(student.getEnrollmentNumber())
                 .programName(student.getProgram().getName())
                 .sectionName(student.getSection().getName())
                 .semesterNumber(student.getSemester().getSemesterNumber())

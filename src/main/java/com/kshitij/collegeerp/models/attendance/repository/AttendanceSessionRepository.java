@@ -12,4 +12,8 @@ public interface AttendanceSessionRepository extends JpaRepository<AttendanceSes
     List<AttendanceSession> findBySubjectOfferingId(Long subjectOfferingId);
     Optional<AttendanceSession> findBySubjectOfferingIdAndSessionDateAndStartTime(
             Long subjectOfferingId, LocalDate sessionDate, LocalTime startTime);
+    Optional<AttendanceSession> findByTimetableEntryIdAndSessionDate(
+            Long timetableEntryId,
+            LocalDate sessionDate
+    );
 }

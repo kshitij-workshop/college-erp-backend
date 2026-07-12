@@ -1,6 +1,7 @@
 package com.kshitij.collegeerp.models.attendance.entity;
 
 import com.kshitij.collegeerp.models.subject.entity.SubjectOffering;
+import com.kshitij.collegeerp.models.timetable.entity.TimetableEntry;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -32,5 +33,9 @@ public class AttendanceSession {
 
     @Column(nullable = false)
     private boolean submitted = false;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "timetable_entry_id", nullable = false)
+    private TimetableEntry timetableEntry;
 
 }

@@ -29,14 +29,11 @@ public class Student {
 
     // Identity
 
-    @Column(nullable = false, unique = true)
-    private String enrollmentNumber;
-
     @Column(unique = true, nullable = false)
     private String rollNumber;
 
     @Column(unique = true, nullable = true)
-    private String registrationNumber;
+    private Long registrationNumber;
 
     // Personal Info
 

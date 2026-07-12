@@ -24,47 +24,6 @@ public class TimetableController {
 
     // ─── Time Slot ─────────────────────────────────────────
 
-    @PostMapping("/time-slots")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<TimeSlotResponse>> addTimeSlot(
-            @Valid @RequestBody TimeSlotRequest request) {
-        return ResponseEntity.ok(
-                ApiResponse.success("Time slot added successfully",
-                        timeSlotService.create(request)));
-    }
-
-    @PutMapping("/time-slots/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<TimeSlotResponse>> updateTimeSlot(
-            @PathVariable Long id,
-            @Valid @RequestBody TimeSlotRequest request) {
-        return ResponseEntity.ok(
-                ApiResponse.success("Time slot updated successfully",
-                        timeSlotService.update(id, request)));
-    }
-
-    @GetMapping("/time-slots")
-    public ResponseEntity<ApiResponse<List<TimeSlotResponse>>> getAllTimeSlots() {
-        return ResponseEntity.ok(
-                ApiResponse.success("Time slots fetched successfully",
-                        timeSlotService.getAll()));
-    }
-
-    @GetMapping("/time-slots/{id}")
-    public ResponseEntity<ApiResponse<TimeSlotResponse>> getTimeSlotById(@PathVariable Long id) {
-        return ResponseEntity.ok(
-                ApiResponse.success("Time slot fetched successfully", timeSlotService.getById(id))
-        );
-    }
-
-    @DeleteMapping("/time-slots/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<Void>> deleteTimeSlot(@PathVariable Long id) {
-        timeSlotService.delete(id);
-        return ResponseEntity.ok(
-                ApiResponse.success("Time Slot delted successfully", null)
-        );
-    }
 
     // ─── Timetable Entry ───────────────────────────────────
 

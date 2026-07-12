@@ -12,9 +12,8 @@ import java.time.LocalDate;
 @AllArgsConstructor @NoArgsConstructor
 public class StudentResponse {
     private Long id;
-    private String enrollmentNumber;
     private String rollNumber;
-    private String registrationNumber;
+    private Long registrationNumber;
     private String fullName;
     private String email;
     private String phone;

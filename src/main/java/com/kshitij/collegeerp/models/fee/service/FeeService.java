@@ -238,7 +238,6 @@ public class FeeService {
                 .invoiceNumber(i.getInvoiceNumber())
                 .studentId(i.getStudent().getId())
                 .studentName(i.getStudent().getFullName())
-                .enrollmentNumber(i.getStudent().getEnrollmentNumber())
                 .feeStructureId(i.getFeeStructure().getId())
                 .academicSession(i.getFeeStructure().getAcademicSession())
                 .totalAmount(i.getTotalAmount())

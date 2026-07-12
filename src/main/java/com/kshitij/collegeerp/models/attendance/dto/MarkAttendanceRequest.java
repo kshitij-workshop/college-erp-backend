@@ -12,18 +12,11 @@ import java.util.List;
 
 @Getter @Setter
 public class MarkAttendanceRequest {
-
-    @NotNull(message = "Subject offering ID is required")
-    private Long subjectOfferingId;
+    @NotNull(message = "Timetable entry is required")
+    private Long timetableEntryId;
 
     @NotNull(message = "Session date is required")
     private LocalDate sessionDate;
-
-    @NotNull(message = "Start time is required")
-    private LocalTime startTime;
-
-    @NotNull(message = "End time is required")
-    private LocalTime endTime;
 
     @NotEmpty(message = "Attendance entries are required")
     private List<StudentAttendanceEntry> entries;

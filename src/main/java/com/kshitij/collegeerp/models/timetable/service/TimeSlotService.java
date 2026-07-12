@@ -1,5 +1,8 @@
 package com.kshitij.collegeerp.models.timetable.service;
 
+import com.kshitij.collegeerp.common.exception.BadRequestException;
+import com.kshitij.collegeerp.common.exception.ConflictException;
+import com.kshitij.collegeerp.common.exception.DuplicateResourceException;
 import com.kshitij.collegeerp.common.exception.ResourceNotFoundException;
 import com.kshitij.collegeerp.models.timetable.dto.TimeSlotRequest;
 import com.kshitij.collegeerp.models.timetable.dto.TimeSlotResponse;
@@ -54,7 +57,7 @@ public class TimeSlotService {
                         new ResourceNotFoundException(
                                 "Time slot not found with id: " + id));
 
-        validateTime(request);
+        validateTime(id, request);
 
         slot.setStartTime(request.getStartTime());
         slot.setEndTime(request.getEndTime());
@@ -117,19 +120,44 @@ public class TimeSlotService {
     // =========================================================
 
     private void validateTime(TimeSlotRequest request) {
-        if (timeSlotRepository.existsByStartTimeAndEndTime(
-                request.getStartTime(),
-                request.getEndTime())) {
 
-            throw new RuntimeException(
-                    "Time slot already exists."
+        if (timeSlotRepository.existsOverlappingSlot(
+                request.getStartTime(),
+                request.getEndTime()
+        )) {
+
+            throw new ConflictException(
+                    "Time slot overlaps with an existing time slot."
             );
         }
 
-        if (request.getEndTime().isBefore(request.getStartTime())
-                || request.getEndTime().equals(request.getStartTime())) {
+        if (!request.getEndTime().isAfter(request.getStartTime())) {
 
-            throw new RuntimeException(
+            throw new BadRequestException(
+                    "End time must be after start time."
+            );
+        }
+    }
+    
+    private void validateTime(
+            Long id,
+            TimeSlotRequest request
+    ) {
+
+        if (timeSlotRepository.existsOverlappingSlot(
+                id,
+                request.getStartTime(),
+                request.getEndTime()
+        )) {
+
+            throw new ConflictException(
+                    "Time slot overlaps with an existing time slot."
+            );
+        }
+
+        if (!request.getEndTime().isAfter(request.getStartTime())) {
+
+            throw new BadRequestException(
                     "End time must be after start time."
             );
         }

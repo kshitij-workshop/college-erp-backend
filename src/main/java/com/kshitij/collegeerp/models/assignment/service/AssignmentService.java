@@ -214,7 +214,6 @@ public class AssignmentService {
                 .assignmentTitle(s.getAssignment().getTitle())
                 .studentId(s.getStudent().getId())
                 .studentName(s.getStudent().getFullName())
-                .enrollmentNumber(s.getStudent().getEnrollmentNumber())
                 .submissionText(s.getSubmissionText())
                 .submittedAt(s.getSubmittedAt())
                 .late(s.isLate())

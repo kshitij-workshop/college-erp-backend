@@ -223,7 +223,6 @@ public class LibraryService {
                 .bookIsbn(issue.getBook().getIsbn())
                 .studentId(issue.getStudent().getId())
                 .studentName(issue.getStudent().getFullName())
-                .enrollmentNumber(issue.getStudent().getEnrollmentNumber())
                 .issueDate(issue.getIssueDate())
                 .dueDate(issue.getDueDate())
                 .returnDate(issue.getReturnDate())

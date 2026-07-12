@@ -1,8 +1,6 @@
 package com.kshitij.collegeerp.models.attendance.service;
 
-import com.kshitij.collegeerp.models.attendance.dto.AttendancePercentageResponse;
-import com.kshitij.collegeerp.models.attendance.dto.AttendanceSessionResponse;
-import com.kshitij.collegeerp.models.attendance.dto.MarkAttendanceRequest;
+import com.kshitij.collegeerp.models.attendance.dto.*;
 import com.kshitij.collegeerp.models.attendance.entity.AttendanceRecord;
 import com.kshitij.collegeerp.models.attendance.entity.AttendanceSession;
 import com.kshitij.collegeerp.models.attendance.entity.AttendanceStatus;
@@ -13,13 +11,20 @@ import com.kshitij.collegeerp.models.student.entity.Student;
 import com.kshitij.collegeerp.models.student.repository.StudentRepository;
 import com.kshitij.collegeerp.models.subject.entity.SubjectOffering;
 import com.kshitij.collegeerp.models.subject.repository.SubjectOfferingRepository;
+import com.kshitij.collegeerp.models.timetable.entity.DayOfWeek;
+import com.kshitij.collegeerp.models.timetable.entity.TimetableEntry;
+import com.kshitij.collegeerp.models.timetable.repository.TimetableEntryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -29,54 +34,123 @@ public class AttendanceService {
     private final AttendanceRecordRepository recordRepository;
     private final SubjectOfferingRepository subjectOfferingRepository;
     private final StudentRepository studentRepository;
+    private final TimetableEntryRepository timetableEntryRepository;
 
     @Transactional
     public AttendanceSessionResponse markAttendance(MarkAttendanceRequest request) {
 
-        SubjectOffering offering = subjectOfferingRepository
-                .findById(request.getSubjectOfferingId())
-                .orElseThrow(() -> new ResourceNotFoundException("Subject offering not found"));
+        // ==========================================
+        // Validate Date
+        // ==========================================
 
-        // Validation: Only assigned faculty can mark attendance
-        String loggedInEmail = getCurrentUserEmail();
-        if (!offering.getFaculty().getEmail().equalsIgnoreCase(loggedInEmail)) {
-            throw new RuntimeException("You are not authorized to mark attendance for this subject");
+        if (request.getSessionDate().isAfter(LocalDate.now())) {
+            throw new RuntimeException(
+                    "Attendance cannot be marked for a future date.");
         }
 
-        // Validation: duplicate session check
+
+
+        // ==========================================
+        // Fetch Subject Offering
+        // ==========================================
+
+        TimetableEntry timetableEntry =
+                timetableEntryRepository.findById(
+                                request.getTimetableEntryId())
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Timetable entry not found"));
+        SubjectOffering offering =
+                timetableEntry.getSubjectOffering();
+
+        // ==========================================
+        // Validate Time
+        // ==========================================
+
+        if (!timetableEntry.getTimeSlot().getEndTime().isAfter(timetableEntry.getTimeSlot().getStartTime())) {
+            throw new RuntimeException(
+                    "End time must be after start time.");
+        }
+
+        // ==========================================
+        // Validate Faculty
+        // ==========================================
+
+        validateFacultyAccess(offering);
+
+        // ==========================================
+        // Prevent Duplicate Attendance Session
+        // ==========================================
+
         boolean sessionExists = sessionRepository
-                .findBySubjectOfferingIdAndSessionDateAndStartTime(
-                        request.getSubjectOfferingId(),
-                        request.getSessionDate(),
-                        request.getStartTime())
+                .findByTimetableEntryIdAndSessionDate(
+                        request.getTimetableEntryId(),
+                        request.getSessionDate()
+                )
                 .isPresent();
 
         if (sessionExists) {
             throw new RuntimeException(
-                    "Attendance for this subject, date, and time slot is already marked");
+                    "Attendance has already been marked for this session.");
         }
 
+        // ==========================================
+        // Validate Student Count
+        // ==========================================
+
+        Long sectionId = offering.getSection().getId();
+
+        long totalStudents = studentRepository.countBySectionId(sectionId);
+
+        if (request.getEntries().size() != totalStudents) {
+            throw new RuntimeException(
+                    "Attendance must be marked for all students in the section.");
+        }
+
+        // ==========================================
+        // Validate Duplicate Students
+        // ==========================================
+
+        Set<Long> studentIds = new HashSet<>();
+
+        for (MarkAttendanceRequest.StudentAttendanceEntry entry : request.getEntries()) {
+
+            if (!studentIds.add(entry.getStudentId())) {
+                throw new RuntimeException(
+                        "Duplicate student found in attendance request.");
+            }
+        }
+
+        // ==========================================
+        // Create Attendance Session
+        // ==========================================
+
         AttendanceSession session = AttendanceSession.builder()
+                .timetableEntry(timetableEntry)
                 .subjectOffering(offering)
                 .sessionDate(request.getSessionDate())
-                .startTime(request.getStartTime())
-                .endTime(request.getEndTime())
+                .startTime(timetableEntry.getTimeSlot().getStartTime())
+                .endTime(timetableEntry.getTimeSlot().getEndTime())
                 .submitted(true)
                 .build();
 
         AttendanceSession savedSession = sessionRepository.save(session);
 
-        // Validation: only allowed to the particular section students
-        Long sectionId = offering.getSection().getId();
+        // ==========================================
+        // Save Attendance Records
+        // ==========================================
 
         for (MarkAttendanceRequest.StudentAttendanceEntry entry : request.getEntries()) {
+
             Student student = studentRepository.findById(entry.getStudentId())
-                    .orElseThrow(() -> new ResourceNotFoundException(
-                            "Student not found with id: " + entry.getStudentId()));
+                    .orElseThrow(() ->
+                            new ResourceNotFoundException(
+                                    "Student not found with id: " + entry.getStudentId()));
 
             if (!student.getSection().getId().equals(sectionId)) {
                 throw new RuntimeException(
-                        "Student " + student.getFullName() + " does not belong to this section");
+                        "Student " + student.getFullName()
+                                + " does not belong to the selected section.");
             }
 
             AttendanceRecord record = AttendanceRecord.builder()
@@ -89,6 +163,70 @@ public class AttendanceService {
         }
 
         return mapSessionToResponse(savedSession);
+    }
+
+    public List<FacultyClassResponse> getMyClasses(LocalDate date) {
+        String email = getCurrentUserEmail();
+
+        java.time.DayOfWeek javaDay = date.getDayOfWeek();
+
+        com.kshitij.collegeerp.models.timetable.entity.DayOfWeek day =
+                com.kshitij.collegeerp.models.timetable.entity.DayOfWeek.valueOf(javaDay.name());
+
+        List<TimetableEntry> classes =
+                timetableEntryRepository
+                        .findBySubjectOfferingFacultyEmailAndDayOfWeekOrderByTimeSlotStartTime(
+                                email,
+                                day
+                        );
+
+        return classes.stream()
+                .map(this::mapToFacultyClassResponse)
+                .toList();
+    }
+
+    public List<AttendanceStudentResponse> getStudentsForClass(
+            Long timetableEntryId
+    ) {
+
+        // ==========================================
+        // Fetch Timetable Entry
+        // ==========================================
+
+        TimetableEntry timetableEntry = timetableEntryRepository
+                .findById(timetableEntryId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Timetable entry not found with id: " + timetableEntryId));
+
+        SubjectOffering offering = timetableEntry.getSubjectOffering();
+
+        // ==========================================
+        // Authorization
+        // ==========================================
+
+        validateFacultyAccess(offering);
+
+        // ==========================================
+        // Fetch Students
+        // ==========================================
+
+        Long sectionId = offering.getSection().getId();
+
+        List<Student> students = studentRepository
+                .findBySectionIdOrderByRegistrationNumber(sectionId);
+
+        // ==========================================
+        // Map Response
+        // ==========================================
+
+        return students.stream()
+                .map(student -> AttendanceStudentResponse.builder()
+                        .studentId(student.getId())
+                        .registrationNumber(student.getRegistrationNumber())
+                        .fullName(student.getFullName())
+                        .build())
+                .toList();
     }
 
     public AttendanceSessionResponse getSessionById(Long sessionId) {
@@ -145,7 +283,6 @@ public class AttendanceService {
                 .map(r -> AttendanceSessionResponse.StudentRecordResponse.builder()
                         .studentId(r.getStudent().getId())
                         .studentName(r.getStudent().getFullName())
-                        .enrollmentNumber(r.getStudent().getEnrollmentNumber())
                         .status(r.getStatus().name())
                         .build())
                 .toList();
@@ -160,6 +297,69 @@ public class AttendanceService {
                 .endTime(session.getEndTime())
                 .submitted(session.isSubmitted())
                 .records(recordResponses)
+                .build();
+    }
+
+    private void validateFacultyAccess(SubjectOffering offering) {
+
+        Authentication authentication = SecurityContextHolder
+                .getContext()
+                .getAuthentication();
+
+        String loggedInEmail = authentication.getName();
+
+        boolean isAdmin = authentication.getAuthorities()
+                .stream()
+                .anyMatch(authority ->
+                        authority.getAuthority().equals("ROLE_ADMIN"));
+
+        boolean isAssignedFaculty = offering.getFaculty()
+                .getEmail()
+                .equalsIgnoreCase(loggedInEmail);
+
+        if (!isAdmin && !isAssignedFaculty) {
+            throw new RuntimeException(
+                    "You are not authorized to perform this action.");
+        }
+    }
+
+    private FacultyClassResponse mapToFacultyClassResponse(
+            TimetableEntry entry
+    ) {
+
+        return FacultyClassResponse.builder()
+
+                .timetableEntryId(entry.getId())
+
+                .subjectOfferingId(entry.getSubjectOffering().getId())
+
+                .subjectName(
+                        entry.getSubjectOffering()
+                                .getSubject()
+                                .getName())
+
+                .subjectCode(
+                        entry.getSubjectOffering()
+                                .getSubject()
+                                .getCode())
+
+                .sectionName(
+                        entry.getSubjectOffering()
+                                .getSection()
+                                .getName())
+
+                .roomNumber(
+                        entry.getRoom()
+                                .getRoomNumber())
+
+                .startTime(
+                        entry.getTimeSlot()
+                                .getStartTime())
+
+                .endTime(
+                        entry.getTimeSlot()
+                                .getEndTime())
+
                 .build();
     }
 }

@@ -108,7 +108,6 @@ public class MarksService {
         return ResultResponse.builder()
                 .studentId(m.getStudent().getId())
                 .studentName(m.getStudent().getFullName())
-                .enrollmentNumber(m.getStudent().getEnrollmentNumber())
                 .marksObtained(m.getMarksObtained())
                 .maxMarks(exam.getMaxMarks())
                 .examName(exam.getName())

@@ -2,6 +2,7 @@ package com.kshitij.collegeerp.models.attendance.dto;
 
 import lombok.*;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -13,6 +14,10 @@ public class AttendanceSessionResponse {
     private Long subjectOfferingId;
     private String subjectName;
     private String sectionName;
+    private Long timetableEntryId;
+    private String roomNumber;
+    private String facultyName;
+    private DayOfWeek dayOfWeek;
     private LocalDate sessionDate;
     private LocalTime startTime;
     private LocalTime endTime;

@@ -38,7 +38,7 @@ public class StudentRequest {
         @NotBlank(message = "Roll no. is required")
         private String rollNumber;
 
-        private String registrationNumber;
+        private Long registrationNumber;
 
         private String address;
 
