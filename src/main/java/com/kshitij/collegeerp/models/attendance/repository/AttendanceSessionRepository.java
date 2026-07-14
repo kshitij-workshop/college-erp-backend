@@ -16,4 +16,10 @@ public interface AttendanceSessionRepository extends JpaRepository<AttendanceSes
             Long timetableEntryId,
             LocalDate sessionDate
     );
+
+    List<AttendanceSession> findAllByOrderBySessionDateDescStartTimeDesc();
+    List<AttendanceSession>
+    findBySubjectOfferingFacultyEmailOrderBySessionDateDescStartTimeDesc(
+            String email
+    );
 }

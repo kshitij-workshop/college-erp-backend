@@ -5,11 +5,16 @@ import com.kshitij.collegeerp.models.exam.dto.ExamRequest;
 import com.kshitij.collegeerp.models.exam.dto.ExamResponse;
 import com.kshitij.collegeerp.models.exam.entity.Exam;
 import com.kshitij.collegeerp.models.exam.repository.ExamRepository;
+import com.kshitij.collegeerp.models.faculty.entity.Faculty;
+import com.kshitij.collegeerp.models.faculty.repository.FacultyRepository;
 import com.kshitij.collegeerp.models.subject.entity.SubjectOffering;
 import com.kshitij.collegeerp.models.subject.repository.SubjectOfferingRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.List;
 
@@ -19,11 +24,14 @@ public class ExamService {
 
     private final ExamRepository examRepository;
     private final SubjectOfferingRepository subjectOfferingRepository;
+    private final FacultyRepository facultyRepository;
 
     @Transactional
     public ExamResponse create(ExamRequest request) {
         SubjectOffering offering = subjectOfferingRepository.findById(request.getSubjectOfferingId())
                 .orElseThrow(() -> new ResourceNotFoundException("Subject offering not found"));
+
+        validateFacultyAssignment(offering);
 
         Exam exam = Exam.builder()
                 .name(request.getName())
@@ -43,6 +51,7 @@ public class ExamService {
     public List<ExamResponse> getAll() {
         return examRepository.findAll()
                 .stream()
+                .filter(exam -> isAdmin() || isAssignedFaculty(exam.getSubjectOffering()))
                 .map(this::mapToResponse)
                 .toList();
     }
@@ -61,6 +70,7 @@ public class ExamService {
     @Transactional
     public void publishResult(Long id) {
         Exam exam = findExamById(id);
+        validateFacultyAssignment(exam.getSubjectOffering());
         if(!exam.isLocked()) {
             throw new RuntimeException("Can not publish result befor locking marks");
         }
@@ -72,6 +82,7 @@ public class ExamService {
     @Transactional
     public void lockExam(Long id) {
         Exam exam = findExamById(id);
+        validateFacultyAssignment(exam.getSubjectOffering());
         exam.setLocked(true);
         examRepository.save(exam);
     }
@@ -82,11 +93,32 @@ public class ExamService {
         if(exam.isLocked()) {
             throw new RuntimeException("Cannot delete a locked exam");
         }
+        examRepository.delete(exam);
     }
 
     public Exam findExamById(Long id) {
         return examRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found with id " + id));
+    }
+
+    private void validateFacultyAssignment(SubjectOffering offering) {
+        if (!isAdmin() && !isAssignedFaculty(offering)) {
+            throw new RuntimeException("You are not authorized to manage exams for this subject offering");
+        }
+    }
+
+    private boolean isAssignedFaculty(SubjectOffering offering) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        Faculty faculty = facultyRepository.findByEmail(email)
+                .orElse(null);
+        return faculty != null && faculty.getId().equals(offering.getFaculty().getId());
+    }
+
+    private boolean isAdmin() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(role -> role.equals("ROLE_ADMIN"));
     }
 
     private ExamResponse mapToResponse(Exam exam) {

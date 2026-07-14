@@ -28,9 +28,25 @@ public class AttendanceController {
                         attendanceService.markAttendance(request)));
     }
 
-    @GetMapping("/faculty/me/classes")
-    @PreAuthorize("hasRole('FACULTY')")
-    public ResponseEntity<ApiResponse<List<FacultyClassResponse>>> getMyClasses(
+    @GetMapping("/classes")
+    @PreAuthorize("hasAnyRole('ADMIN','FACULTY')")
+    public ResponseEntity<ApiResponse<List<FacultyClassResponse>>> getClasses(
+            @RequestParam LocalDate date
+    ) {
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Classes fetched successfully.",
+                        attendanceService.getClasses(date)
+                )
+        );
+    }
+
+    @GetMapping("/classes/{timetableEntryId}/sheet")
+    @PreAuthorize("hasAnyRole('ADMIN','FACULTY')")
+    public ResponseEntity<ApiResponse<AttendanceSheetResponse>>
+    getAttendanceSheet(
+            @PathVariable Long timetableEntryId,
             @RequestParam LocalDate date
     ) {
 
@@ -38,9 +54,27 @@ public class AttendanceController {
 
                 ApiResponse.success(
 
-                        "Classes fetched successfully.",
+                        "Attendance sheet fetched successfully.",
 
-                        attendanceService.getMyClasses(date)
+                        attendanceService.getAttendanceSheet(
+                                timetableEntryId,
+                                date
+                        )
+                )
+        );
+    }
+
+    @PutMapping("/session/{sessionId}")
+    @PreAuthorize("hasAnyRole('ADMIN','FACULTY')")
+    public ResponseEntity<ApiResponse<AttendanceSessionResponse>> updateAttendance(
+            @PathVariable Long sessionId,
+            @Valid @RequestBody UpdateAttendanceRequest request
+    ) {
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Attendance updated successfully.",
+                        attendanceService.updateAttendance(sessionId, request)
                 )
         );
     }
@@ -59,15 +93,6 @@ public class AttendanceController {
         );
     }
 
-    @GetMapping("/session/{sessionId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'FACULTY', 'HOD')")
-    public ResponseEntity<ApiResponse<AttendanceSessionResponse>> getSession(
-            @PathVariable Long sessionId) {
-        return ResponseEntity.ok(
-                ApiResponse.success("Session fetched successfully",
-                        attendanceService.getSessionById(sessionId)));
-    }
-
     @GetMapping("/offering/{subjectOfferingId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'FACULTY', 'HOD')")
     public ResponseEntity<ApiResponse<List<AttendanceSessionResponse>>> getSessionsByOffering(
@@ -83,5 +108,33 @@ public class AttendanceController {
         return ResponseEntity.ok(
                 ApiResponse.success("Attendance percentage calculated successfully",
                         attendanceService.getStudentPercentage(studentId)));
+    }
+
+    @GetMapping("/history")
+    @PreAuthorize("hasAnyRole('ADMIN','FACULTY')")
+    public ResponseEntity<ApiResponse<List<AttendanceHistoryResponse>>>
+    getAttendanceHistory() {
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Attendance history fetched successfully.",
+                        attendanceService.getAttendanceHistory()
+                )
+        );
+    }
+
+    @GetMapping("/session/{sessionId}")
+    @PreAuthorize("hasAnyRole('ADMIN','FACULTY')")
+    public ResponseEntity<ApiResponse<AttendanceSessionDetailsResponse>>
+    getAttendanceSession(
+            @PathVariable Long sessionId
+    ) {
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Attendance session fetched successfully.",
+                        attendanceService.getAttendanceSession(sessionId)
+                )
+        );
     }
 }

@@ -53,16 +53,16 @@ public class ExamController {
     }
 
     @PatchMapping("/{id}/lock")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FACULTY')")
     public ResponseEntity<ApiResponse<Void>> lock(@PathVariable Long id) {
         examService.lockExam(id);
         return ResponseEntity.ok(
-                ApiResponse.success("Exam locked successfylly", null)
+                ApiResponse.success("Exam locked successfully", null)
         );
     }
 
     @PatchMapping("/{id}/publish")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FACULTY')")
     public ResponseEntity<ApiResponse<Void>> publish(@PathVariable Long id) {
         examService.publishResult(id);
         return ResponseEntity.ok(

@@ -15,6 +15,8 @@ public class FacultyClassResponse {
 
     private Long subjectOfferingId;
 
+    private String facultyName;
+
     private String subjectName;
 
     private String subjectCode;
@@ -26,4 +28,6 @@ public class FacultyClassResponse {
     private LocalTime startTime;
 
     private LocalTime endTime;
+
+    private boolean attendanceMarked;
 }

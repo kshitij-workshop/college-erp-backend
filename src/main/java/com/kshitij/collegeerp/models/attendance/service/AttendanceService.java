@@ -11,9 +11,9 @@ import com.kshitij.collegeerp.models.student.entity.Student;
 import com.kshitij.collegeerp.models.student.repository.StudentRepository;
 import com.kshitij.collegeerp.models.subject.entity.SubjectOffering;
 import com.kshitij.collegeerp.models.subject.repository.SubjectOfferingRepository;
-import com.kshitij.collegeerp.models.timetable.entity.DayOfWeek;
 import com.kshitij.collegeerp.models.timetable.entity.TimetableEntry;
 import com.kshitij.collegeerp.models.timetable.repository.TimetableEntryRepository;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -21,10 +21,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -165,15 +165,27 @@ public class AttendanceService {
         return mapSessionToResponse(savedSession);
     }
 
-    public List<FacultyClassResponse> getMyClasses(LocalDate date) {
-        String email = getCurrentUserEmail();
+    public List<FacultyClassResponse> getClasses(LocalDate date) {
 
         java.time.DayOfWeek javaDay = date.getDayOfWeek();
 
         com.kshitij.collegeerp.models.timetable.entity.DayOfWeek day =
                 com.kshitij.collegeerp.models.timetable.entity.DayOfWeek.valueOf(javaDay.name());
 
-        List<TimetableEntry> classes =
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        String email = authentication.getName();
+
+        boolean isAdmin = authentication.getAuthorities()
+                .stream()
+                .anyMatch(authority ->
+                        authority.getAuthority().equals("ROLE_ADMIN"));
+
+        List<TimetableEntry> classes = isAdmin ?
+                timetableEntryRepository
+                        .findByDayOfWeekOrderByTimeSlotStartTime(day) :
+
                 timetableEntryRepository
                         .findBySubjectOfferingFacultyEmailAndDayOfWeekOrderByTimeSlotStartTime(
                                 email,
@@ -181,7 +193,7 @@ public class AttendanceService {
                         );
 
         return classes.stream()
-                .map(this::mapToFacultyClassResponse)
+                .map(entry -> mapToFacultyClassResponse(entry, date))
                 .toList();
     }
 
@@ -221,18 +233,13 @@ public class AttendanceService {
         // ==========================================
 
         return students.stream()
-                .map(student -> AttendanceStudentResponse.builder()
-                        .studentId(student.getId())
-                        .registrationNumber(student.getRegistrationNumber())
-                        .fullName(student.getFullName())
-                        .build())
+                .map(student -> mapStudent(
+                        student,
+                        AttendanceStatus.PRESENT
+                ))
                 .toList();
     }
 
-    public AttendanceSessionResponse getSessionById(Long sessionId) {
-        AttendanceSession session = findSessionById(sessionId);
-        return mapSessionToResponse(session);
-    }
 
     public List<AttendanceSessionResponse> getSessionsByOffering(Long subjectOfferingId) {
         return sessionRepository.findBySubjectOfferingId(subjectOfferingId)
@@ -264,6 +271,100 @@ public class AttendanceService {
                 .build();
     }
 
+    // Attendance History
+    public List<AttendanceHistoryResponse> getAttendanceHistory() {
+
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        String email = authentication.getName();
+
+        boolean isAdmin = authentication.getAuthorities()
+                .stream()
+                .anyMatch(authority ->
+                        authority.getAuthority().equals("ROLE_ADMIN"));
+
+        List<AttendanceSession> sessions;
+
+        if (isAdmin) {
+            sessions = sessionRepository
+                    .findAllByOrderBySessionDateDescStartTimeDesc();
+        } else {
+            sessions = sessionRepository
+                    .findBySubjectOfferingFacultyEmailOrderBySessionDateDescStartTimeDesc(
+                            email
+                    );
+        }
+
+        return sessions.stream()
+                .map(session -> {
+                    List<AttendanceRecord> records =
+                            recordRepository
+                                    .findBySessionId(session.getId());
+                    return mapAttendanceHistory(session, records);
+                })
+                .toList();
+    }
+
+    public AttendanceSessionDetailsResponse getAttendanceSession(Long sessionId) {
+        AttendanceSession session = sessionRepository
+                .findById(sessionId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Attendance session not found"));
+
+        validateFacultyAccess(session.getSubjectOffering());
+
+        List<AttendanceRecord> records = recordRepository.findBySessionId(sessionId);
+
+        List<AttendanceStudentResponse> students = records.stream()
+                .sorted(Comparator.comparing(record -> record.getStudent().getRegistrationNumber()))
+                        .map(record ->
+                                AttendanceStudentResponse.builder()
+                                        .studentId(
+                                                record.getStudent().getId())
+                                        .rollNumber(
+                                                record.getStudent().getRollNumber())
+                                        .registrationNumber(
+                                                record.getStudent().getRegistrationNumber())
+                                        .fullName(
+                                                record.getStudent().getFullName())
+                                        .status(
+                                                record.getStatus())
+                                        .build()
+                        )
+                        .toList();
+
+        return AttendanceSessionDetailsResponse.builder()
+
+                .sessionId(session.getId())
+
+                .sessionDate(session.getSessionDate())
+
+                .startTime(session.getStartTime())
+
+                .endTime(session.getEndTime())
+
+                .subjectName(
+                        session.getSubjectOffering()
+                                .getSubject()
+                                .getName())
+
+                .subjectCode(
+                        session.getSubjectOffering()
+                                .getSubject()
+                                .getCode())
+
+                .sectionName(
+                        session.getSubjectOffering()
+                                .getSection()
+                                .getName())
+
+                .students(students)
+
+                .build();
+    }
+
     private AttendanceSession findSessionById(Long id) {
         return sessionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -274,6 +375,51 @@ public class AttendanceService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         assert authentication != null;
         return authentication.getName();
+    }
+
+    private AttendanceHistoryResponse mapAttendanceHistory(
+            AttendanceSession session,
+            List<AttendanceRecord> records
+    ) {
+
+        long present = records.stream()
+                .filter(record -> record.getStatus() == AttendanceStatus.PRESENT)
+                .count();
+
+        long absent = records.stream()
+                .filter(record -> record.getStatus() == AttendanceStatus.ABSENT)
+                .count();
+
+        long late = records.stream()
+                .filter(record -> record.getStatus() == AttendanceStatus.LATE)
+                .count();
+
+        long leave = records.stream()
+                .filter(record -> record.getStatus() == AttendanceStatus.LEAVE)
+                .count();
+
+        return AttendanceHistoryResponse.builder()
+                .sessionId(session.getId())
+                .sessionDate(session.getSessionDate())
+                .subjectName(
+                        session.getSubjectOffering()
+                                .getSubject()
+                                .getName())
+                .subjectCode(
+                        session.getSubjectOffering()
+                                .getSubject()
+                                .getCode())
+                .sectionName(
+                        session.getSubjectOffering()
+                                .getSection()
+                                .getName())
+                .startTime(session.getStartTime())
+                .endTime(session.getEndTime())
+                .presentCount(present)
+                .absentCount(absent)
+                .lateCount(late)
+                .leaveCount(leave)
+                .build();
     }
 
     private AttendanceSessionResponse mapSessionToResponse(AttendanceSession session) {
@@ -300,6 +446,37 @@ public class AttendanceService {
                 .build();
     }
 
+
+    private void validateAttendanceEditAccess(
+            AttendanceSession session
+    ) {
+
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        String email = authentication.getName();
+
+        boolean isAdmin = authentication.getAuthorities()
+                .stream()
+                .anyMatch(authority ->
+                        authority.getAuthority().equals("ROLE_ADMIN"));
+
+        // Admin can always edit
+        if (isAdmin) {
+            return;
+        }
+
+        // Verify assigned faculty
+        if (!session.getSubjectOffering()
+                .getFaculty()
+                .getEmail()
+                .equalsIgnoreCase(email)) {
+
+            throw new RuntimeException(
+                    "You are not authorized to update this attendance.");
+        }
+    }
+
     private void validateFacultyAccess(SubjectOffering offering) {
 
         Authentication authentication = SecurityContextHolder
@@ -324,8 +501,15 @@ public class AttendanceService {
     }
 
     private FacultyClassResponse mapToFacultyClassResponse(
-            TimetableEntry entry
+            TimetableEntry entry, LocalDate date
     ) {
+
+        boolean marked = sessionRepository
+                .findByTimetableEntryIdAndSessionDate(
+                        entry.getId(),
+                        date
+                )
+                .isPresent();
 
         return FacultyClassResponse.builder()
 
@@ -341,7 +525,13 @@ public class AttendanceService {
                 .subjectCode(
                         entry.getSubjectOffering()
                                 .getSubject()
-                                .getCode())
+                                .getCode()
+                                )
+
+                .facultyName(
+                        entry.getSubjectOffering()
+                                .getFaculty().getFullName()
+                )
 
                 .sectionName(
                         entry.getSubjectOffering()
@@ -360,6 +550,151 @@ public class AttendanceService {
                         entry.getTimeSlot()
                                 .getEndTime())
 
+                .attendanceMarked(marked)
+
+
                 .build();
+    }
+
+    public AttendanceSheetResponse getAttendanceSheet(
+            Long timetableEntryId,
+            LocalDate date
+    ) {
+
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        boolean isAdmin = authentication.getAuthorities()
+                .stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        TimetableEntry timetableEntry = timetableEntryRepository
+                .findById(timetableEntryId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Timetable entry not found."));
+
+        SubjectOffering offering = timetableEntry.getSubjectOffering();
+
+        validateFacultyAccess(offering);
+
+        Optional<AttendanceSession> existingSession =
+                sessionRepository
+                        .findByTimetableEntryIdAndSessionDate(
+                                timetableEntryId,
+                                date
+                        );
+
+        if (existingSession.isPresent()) {
+
+            AttendanceSession session = existingSession.get();
+
+
+
+            List<AttendanceRecord> records =
+                    recordRepository
+                            .findBySessionId(session.getId());
+
+            List<AttendanceStudentResponse> students =
+                    records.stream()
+                            .sorted(Comparator.comparing(
+                                    record -> record.getStudent().getRegistrationNumber()
+                            ))
+                            .map(record ->
+                                    mapStudent(
+                                            record.getStudent(),
+                                            record.getStatus()
+                                    )
+                            )
+                            .toList();
+
+            return AttendanceSheetResponse.builder()
+                    .attendanceMarked(true)
+                    .sessionId(session.getId())
+                    .timetableEntryId(timetableEntryId)
+                    .subjectName(offering.getSubject().getName())
+                    .sectionName(offering.getSection().getName())
+                    .sessionDate(date)
+                    .students(students)
+                    .build();
+        }
+
+        List<Student> students =
+                studentRepository.findBySectionIdOrderByRegistrationNumber(
+                        offering.getSection().getId()
+                );
+
+        List<AttendanceStudentResponse> attendanceStudents =
+                students.stream()
+                        .map(student ->
+                                mapStudent(
+                                        student,
+                                        AttendanceStatus.PRESENT
+                                )
+                        )
+                        .toList();
+
+        return AttendanceSheetResponse.builder()
+                .attendanceMarked(false)
+                .sessionId(null)
+                .timetableEntryId(timetableEntryId)
+                .subjectName(offering.getSubject().getName())
+                .sectionName(offering.getSection().getName())
+                .sessionDate(date)
+                .students(attendanceStudents)
+                .build();
+    }
+
+    private AttendanceStudentResponse mapStudent(
+            Student student,
+            AttendanceStatus status
+    ) {
+
+        return AttendanceStudentResponse.builder()
+                .studentId(student.getId())
+                .rollNumber(student.getRollNumber())
+                .registrationNumber(student.getRegistrationNumber())
+                .fullName(student.getFullName())
+                .status(status)
+                .build();
+    }
+
+    @Transactional
+    public AttendanceSessionResponse updateAttendance(Long sessionId, @Valid UpdateAttendanceRequest request) {
+        AttendanceSession session = sessionRepository
+                .findById(sessionId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Attendance session not found."));
+
+        validateFacultyAccess(session.getSubjectOffering());
+
+        List<AttendanceRecord> records =
+                recordRepository.findBySessionId(sessionId);
+
+        Map<Long, AttendanceRecord> recordMap =
+                records.stream()
+                        .collect(Collectors.toMap(
+                                record -> record.getStudent().getId(),
+                                Function.identity()
+                        ));
+
+        for (UpdateAttendanceRequest.StudentAttendanceEntry entry : request.getEntries()) {
+
+            AttendanceRecord record = recordMap.get(entry.getStudentId());
+
+            if (record == null) {
+                throw new ResourceNotFoundException(
+                        "Attendance record not found for student id: "
+                                + entry.getStudentId());
+            }
+
+            record.setStatus(entry.getStatus());
+        }
+
+        recordRepository.saveAll(records);
+        System.out.println("Saved: " + records.size());
+
+        return mapSessionToResponse(session);
     }
 }

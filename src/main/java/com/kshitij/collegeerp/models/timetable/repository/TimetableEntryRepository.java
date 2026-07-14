@@ -72,4 +72,7 @@ public interface TimetableEntryRepository extends JpaRepository<TimetableEntry, 
             String email,
             DayOfWeek dayOfWeek
     );
+    List<TimetableEntry>
+    findByDayOfWeekOrderByTimeSlotStartTime(DayOfWeek day);
+
 }

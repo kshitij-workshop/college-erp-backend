@@ -13,7 +13,7 @@ import java.nio.DoubleBuffer;
 public class ResultResponse {
     private Long studentId;
     private String studentName;
-    private String enrollmentNumber;
+    private Long registrationNumber;
     private Double marksObtained;
     private Integer maxMarks;
     private String examName;

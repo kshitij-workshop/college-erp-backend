@@ -21,6 +21,8 @@ public interface FacultyRepository
 
     Optional<Faculty> findByEmployeeCode(String employeeCode);
 
+    Optional<Faculty> findByEmail(String email);
+
     Optional<Faculty> findByUserId(Long userId);
 
     long countByStatus(FacultyStatus status);

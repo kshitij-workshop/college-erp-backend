@@ -15,6 +15,7 @@ import com.kshitij.collegeerp.models.subject.repository.SubjectRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.List;
 
@@ -105,6 +106,14 @@ public class SubjectOfferingService {
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
+    }
+
+    public List<SubjectOfferingResponse> getMyOfferings() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        Faculty faculty = facultyRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Faculty profile not found for the logged-in user"));
+
+        return getByFaculty(faculty.getId());
     }
 
     public List<SubjectOfferingResponse> getBySection(Long sectionId) {

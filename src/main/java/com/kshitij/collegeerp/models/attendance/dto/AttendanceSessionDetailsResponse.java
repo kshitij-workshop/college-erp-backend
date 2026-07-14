@@ -1,9 +1,10 @@
-package com.kshitij.collegeerp.models.attendance.entity;
+package com.kshitij.collegeerp.models.attendance.dto;
 
 import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -26,5 +27,5 @@ public class AttendanceSessionDetailsResponse {
 
     private String sectionName;
 
-    private List<StudentAttendanceResponse> students;
+    private List<AttendanceStudentResponse> students;
 }

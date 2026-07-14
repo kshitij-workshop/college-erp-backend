@@ -38,6 +38,14 @@ public class SubjectOfferingController {
                         subjectOfferingService.getAll()));
     }
 
+    @GetMapping("/my")
+    @PreAuthorize("hasRole('FACULTY')")
+    public ResponseEntity<ApiResponse<List<SubjectOfferingResponse>>> getMyOfferings() {
+        return ResponseEntity.ok(
+                ApiResponse.success("Assigned subject offerings fetched successfully",
+                        subjectOfferingService.getMyOfferings()));
+    }
+
     @GetMapping("/faculty/{facultyId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'FACULTY', 'HOD')")
     public ResponseEntity<ApiResponse<List<SubjectOfferingResponse>>> getByFaculty(
