@@ -19,13 +19,13 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/faculty")
-@PreAuthorize("hasAnyRole('ADMIN')")
 @RequiredArgsConstructor
 public class FacultyController {
 
     private final FacultyService facultyService;
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<FacultyResponse>> createFaculty(
 
             @Valid @RequestBody FacultyRequest request

@@ -18,6 +18,8 @@ import com.kshitij.collegeerp.models.library.repository.BookRepository;
 import com.kshitij.collegeerp.models.notice.repository.NoticeRepository;
 import com.kshitij.collegeerp.models.student.repository.StudentRepository;
 import com.kshitij.collegeerp.models.fee.entity.PaymentStatus;
+import com.kshitij.collegeerp.models.subject.repository.SubjectOfferingRepository;
+import com.kshitij.collegeerp.models.attendance.repository.AttendanceSessionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -45,6 +47,9 @@ public class DashboardServiceImpl implements DashboardService {
 
     private final FeeInvoiceRepository feeInvoiceRepository;
 
+    private final SubjectOfferingRepository subjectOfferingRepository;
+    private final AttendanceSessionRepository attendanceSessionRepository;
+
     @Override
     public DashboardResponse getDashboard(Authentication authentication) {
 
@@ -70,9 +75,36 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     private DashboardResponse getFacultyDashboard(User user) {
-        throw new UnsupportedOperationException(
-                "Faculty dashboard is not implemented yet."
-        );
+
+        var faculty = facultyRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Faculty not found"));
+
+        long subjectsAssigned = subjectOfferingRepository.findByFacultyId(faculty.getId()).size();
+
+        long sessionsTaken = attendanceSessionRepository
+                .findBySubjectOfferingFacultyEmailOrderBySessionDateDescStartTimeDesc(faculty.getEmail())
+                .size();
+
+        long assignmentsCreated = assignmentRepository.findAll()
+                .stream()
+                .filter(a -> a.getSubjectOffering().getFaculty().getId().equals(faculty.getId()))
+                .count();
+
+        long examsCreated = examRepository.findAll()
+                .stream()
+                .filter(e -> e.getSubjectOffering().getFaculty().getId().equals(faculty.getId()))
+                .count();
+
+        return com.kshitij.collegeerp.dashboard.dto.FacultyDashboardResponse.builder()
+                .facultyName(faculty.getFullName())
+                .employeeCode(faculty.getEmployeeCode())
+                .departmentName(faculty.getDepartment().getName())
+                .totalSubjectsAssigned(subjectsAssigned)
+                .totalAttendanceSessionsTaken(sessionsTaken)
+                .totalAssignmentsCreated(assignmentsCreated)
+                .totalExamsCreated(examsCreated)
+                .build();
+
     }
 
     private DashboardResponse getStudentDashboard(User user) {
