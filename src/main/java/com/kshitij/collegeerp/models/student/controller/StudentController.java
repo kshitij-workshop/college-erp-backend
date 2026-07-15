@@ -34,7 +34,6 @@ public class StudentController {
 
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN','HOD','FACULTY')")
     public ResponseEntity<ApiResponse<Page<StudentResponse>>> getAllStudents(
 
             @RequestParam(defaultValue = "") String keyword,

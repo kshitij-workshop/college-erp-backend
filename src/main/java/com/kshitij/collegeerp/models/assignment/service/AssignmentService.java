@@ -15,7 +15,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -78,6 +81,63 @@ public class AssignmentService {
         return mapToResponse(findAssignmentById(id));
     }
 
+    public List<StudentAssignmentResponse> getMyAssignments() {
+
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        Student student = studentRepository.findByUser_Email(email);
+
+        List<Assignment> assignments =
+                assignmentRepository.findBySubjectOfferingSectionIdAndActiveTrue(
+                        student.getSection().getId()
+                );
+
+        Map<Long, AssignmentSubmission> submissionMap =
+                submissionRepository.findByStudentId(student.getId())
+                        .stream()
+                        .collect(Collectors.toMap(
+                                submission -> submission.getAssignment().getId(),
+                                Function.identity()
+                        ));
+
+        return assignments.stream()
+                .map(assignment ->
+                        mapToStudentResponse(
+                                assignment,
+                                submissionMap.get(assignment.getId())
+                        )
+                )
+                .toList();
+    }
+
+    public List<SubmissionResponse> getMySubmissions() {
+
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        Student student = studentRepository.findByUser_Email(email);
+
+        return submissionRepository.findByStudentId(student.getId())
+                .stream()
+                .map(this::mapSubmissionToResponse)
+                .toList();
+    }
+
+    public SubmissionResponse getMySubmission(Long assignmentId) {
+
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        Student student = studentRepository.findByUser_Email(email);
+
+        AssignmentSubmission submission =
+                submissionRepository
+                        .findByAssignmentIdAndStudentId(
+                                assignmentId,
+                                student.getId()
+                        )
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Submission not found"));
+
+        return mapSubmissionToResponse(submission);
+    }
+
     @Transactional
     public AssignmentResponse update(Long id, AssignmentRequest request) {
         Assignment assignment = findAssignmentById(id);
@@ -106,8 +166,9 @@ public class AssignmentService {
     public SubmissionResponse submit(SubmissionRequest request) {
         Assignment assignment = findAssignmentById(request.getAssignmentId());
 
-        Student student = studentRepository.findById(request.getStudentId())
-                .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
+        // Get the currently authenticated student — never trust studentId from the request
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        Student student = studentRepository.findByUser_Email(email);
 
         // Validation: student must belong to the particular section
         Long sectionId = assignment.getSubjectOffering().getSection().getId();
@@ -118,12 +179,10 @@ public class AssignmentService {
 
         boolean isLate = LocalDateTime.now().isAfter(assignment.getDueDate());
 
-        // if already submitted then resubmit - before due date
         if (submissionRepository.existsByAssignmentIdAndStudentId(
                 assignment.getId(), student.getId())) {
             if (isLate) {
-                throw new RuntimeException(
-                        "Cannot resubmit after due date");
+                throw new RuntimeException("Cannot resubmit after due date");
             }
             AssignmentSubmission existing = submissionRepository
                     .findByAssignmentIdAndStudentId(
@@ -201,6 +260,8 @@ public class AssignmentService {
                 .subjectName(a.getSubjectOffering().getSubject().getName())
                 .sectionName(a.getSubjectOffering().getSection().getName())
                 .facultyName(a.getSubjectOffering().getFaculty().getFullName())
+                .batchName(a.getSubjectOffering().getSection().getSemester().getBatch().getName())
+                .departmentCode(a.getSubjectOffering().getSection().getSemester().getBatch().getProgram().getDepartment().getCode())
                 .dueDate(a.getDueDate())
                 .maxMarks(a.getMaxMarks())
                 .active(a.isActive())
@@ -214,6 +275,7 @@ public class AssignmentService {
                 .assignmentTitle(s.getAssignment().getTitle())
                 .studentId(s.getStudent().getId())
                 .studentName(s.getStudent().getFullName())
+                .registrationNumber(s.getStudent().getRegistrationNumber())
                 .submissionText(s.getSubmissionText())
                 .submittedAt(s.getSubmittedAt())
                 .late(s.isLate())
@@ -222,4 +284,74 @@ public class AssignmentService {
                 .status(s.getStatus())
                 .build();
     }
-}
+
+    private StudentAssignmentResponse mapToStudentResponse(
+            Assignment assignment,
+            AssignmentSubmission submission
+    ) {
+
+        return StudentAssignmentResponse.builder()
+
+                .assignmentId(assignment.getId())
+
+                .title(assignment.getTitle())
+
+                .description(assignment.getDescription())
+
+                .subjectName(
+                        assignment.getSubjectOffering()
+                                .getSubject()
+                                .getName()
+                )
+
+                .subjectCode(
+                        assignment.getSubjectOffering()
+                                .getSubject()
+                                .getCode()
+                )
+
+                .facultyName(
+                        assignment.getSubjectOffering()
+                                .getFaculty()
+                                .getFullName()
+                )
+
+                .dueDate(assignment.getDueDate())
+
+                .maxMarks(assignment.getMaxMarks())
+
+                .submissionStatus(
+                        submission == null
+                                ? SubmissionStatus.PENDING
+                                : submission.getStatus()
+                )
+
+                .submittedAt(
+                        submission == null
+                                ? null
+                                : submission.getSubmittedAt()
+                )
+
+                .marksAwarded(
+                        submission == null
+                                ? null
+                                : submission.getMarksAwarded()
+                )
+
+                .feedback(
+                        submission == null
+                                ? null
+                                : submission.getFeedback()
+                )
+
+                .late(
+                        submission != null
+                                && submission.isLate()
+                )
+
+                .attachmentName(null)
+
+                .attachmentUrl(null)
+
+                .build();
+    }}

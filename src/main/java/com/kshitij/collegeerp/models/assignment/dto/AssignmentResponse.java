@@ -11,6 +11,8 @@ public class AssignmentResponse {
     private String title;
     private String description;
     private Long subjectOfferingId;
+    private String departmentCode;
+    private String batchName;
     private String subjectName;
     private String sectionName;
     private String facultyName;

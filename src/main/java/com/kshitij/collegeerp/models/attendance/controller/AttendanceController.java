@@ -1,6 +1,7 @@
 package com.kshitij.collegeerp.models.attendance.controller;
 
 import com.kshitij.collegeerp.models.attendance.dto.*;
+import com.kshitij.collegeerp.models.attendance.entity.AttendanceRecord;
 import com.kshitij.collegeerp.models.attendance.service.AttendanceService;
 import com.kshitij.collegeerp.common.response.ApiResponse;
 import jakarta.validation.Valid;
@@ -108,6 +109,15 @@ public class AttendanceController {
         return ResponseEntity.ok(
                 ApiResponse.success("Attendance percentage calculated successfully",
                         attendanceService.getStudentPercentage(studentId)));
+    }
+
+    @GetMapping("/student/{studentId}")
+    public ResponseEntity<ApiResponse<List<AttendanceStudentHistoryResponse>>> getStudentAttendanceHistory(
+            @PathVariable Long studentId) {
+        return ResponseEntity.ok(
+                ApiResponse.success("Attendance history fetched successfully"
+                , attendanceService.getStudentAttendanceHistory(studentId))
+        );
     }
 
     @GetMapping("/history")

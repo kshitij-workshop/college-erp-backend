@@ -51,6 +51,18 @@ public class AssignmentController {
                         assignmentService.getById(id)));
     }
 
+    @GetMapping("/my")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<ApiResponse<List<StudentAssignmentResponse>>> getMyAssignments() {
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Assignments fetched successfully",
+                        assignmentService.getMyAssignments()
+                )
+        );
+    }
+
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('FACULTY')")
     public ResponseEntity<ApiResponse<AssignmentResponse>> update(
@@ -99,11 +111,27 @@ public class AssignmentController {
                         assignmentService.getSubmissionsByAssignment(assignmentId)));
     }
 
-    @GetMapping("/submissions/student/{studentId}")
-    public ResponseEntity<ApiResponse<List<SubmissionResponse>>> getByStudent(
-            @PathVariable Long studentId) {
+    @GetMapping("/my-submissions")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<ApiResponse<List<SubmissionResponse>>> getMySubmissions() {
         return ResponseEntity.ok(
-                ApiResponse.success("Submissions fetched successfully",
-                        assignmentService.getSubmissionsByStudent(studentId)));
+                ApiResponse.success(
+                        "Submissions fetched successfully",
+                        assignmentService.getMySubmissions()
+                )
+        );
+    }
+
+    @GetMapping("/{assignmentId}/my-submission")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<ApiResponse<SubmissionResponse>> getMySubmission(
+            @PathVariable Long assignmentId) {
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Submission fetched successfully",
+                        assignmentService.getMySubmission(assignmentId)
+                )
+        );
     }
 }

@@ -11,8 +11,5 @@ public class SubmissionRequest {
     @NotNull(message = "Assignment ID is required")
     private Long assignmentId;
 
-    @NotNull(message = "Student ID is required")
-    private Long studentId;
-
     private String submissionText;
 }

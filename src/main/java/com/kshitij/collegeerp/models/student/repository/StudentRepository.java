@@ -16,10 +16,14 @@ public interface StudentRepository extends JpaRepository<Student, Long>,
 
     Optional<Student> findBySectionId(Long sectionId);
 
+    Optional<Student> findByUserId(Long userId);
+
     boolean existsByEmail(@NotBlank(message = "Email is required") @Email(message = "Invalid email format") String email);
 
     List<Student> findByDepartmentId(Long departmentId);
     long countBySectionId(Long sectionId);
 
     List<Student> findBySectionIdOrderByRegistrationNumber(Long sectionId);
+
+    Student findByUser_Email(String userEmail);
 }

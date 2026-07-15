@@ -16,7 +16,7 @@ public class SubmissionResponse {
     private String assignmentTitle;
     private Long studentId;
     private String studentName;
-    private String enrollmentNumber;
+    private Long registrationNumber;
     private String submissionText;
     private LocalDateTime submittedAt;
     private boolean late;

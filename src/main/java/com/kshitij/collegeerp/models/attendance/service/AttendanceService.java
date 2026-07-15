@@ -9,6 +9,7 @@ import com.kshitij.collegeerp.models.attendance.repository.AttendanceSessionRepo
 import com.kshitij.collegeerp.common.exception.ResourceNotFoundException;
 import com.kshitij.collegeerp.models.student.entity.Student;
 import com.kshitij.collegeerp.models.student.repository.StudentRepository;
+import com.kshitij.collegeerp.models.subject.entity.Subject;
 import com.kshitij.collegeerp.models.subject.entity.SubjectOffering;
 import com.kshitij.collegeerp.models.subject.repository.SubjectOfferingRepository;
 import com.kshitij.collegeerp.models.timetable.entity.TimetableEntry;
@@ -248,8 +249,29 @@ public class AttendanceService {
                 .toList();
     }
 
-    public List<AttendanceRecord> getStudentAttendanceHistory(Long studentId) {
-        return recordRepository.findByStudentId(studentId);
+    public List<AttendanceStudentHistoryResponse> getStudentAttendanceHistory(Long studentId) {
+        List<AttendanceRecord> records = recordRepository.findByStudentId(studentId);
+
+        return records.stream()
+                .map(this::mapAttendanceStudentHistory)
+                .toList();
+    }
+
+
+    private AttendanceStudentHistoryResponse mapAttendanceStudentHistory(AttendanceRecord record) {
+        AttendanceSession session = record.getSession();
+        Subject subject = session.getSubjectOffering().getSubject();
+
+        return AttendanceStudentHistoryResponse.builder()
+                .sessionId(session.getId())
+                .sessionDate(session.getSessionDate())
+                .subjectName(subject.getName())
+                .subjectCode(subject.getCode())
+                .sectionName(session.getSubjectOffering().getSection().getName())
+                .startTime(session.getStartTime())
+                .endTime(session.getEndTime())
+                .status(record.getStatus())
+                .build();
     }
 
     public AttendancePercentageResponse getStudentPercentage(Long studentId) {

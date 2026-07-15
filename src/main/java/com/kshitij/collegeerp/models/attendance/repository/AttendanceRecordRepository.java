@@ -1,5 +1,6 @@
 package com.kshitij.collegeerp.models.attendance.repository;
 
+import com.kshitij.collegeerp.models.attendance.dto.AttendanceStudentHistoryResponse;
 import com.kshitij.collegeerp.models.attendance.entity.AttendanceRecord;
 import com.kshitij.collegeerp.models.attendance.entity.AttendanceStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,5 +12,6 @@ public interface AttendanceRecordRepository extends JpaRepository<AttendanceReco
     List<AttendanceRecord> findByStudentId(Long studentId);
     long countByStudentIdAndStatus(Long studentId, AttendanceStatus status);
     long countByStudentId(Long studentId);
+
 
 }

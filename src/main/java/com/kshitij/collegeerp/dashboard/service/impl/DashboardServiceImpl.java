@@ -20,6 +20,10 @@ import com.kshitij.collegeerp.models.student.repository.StudentRepository;
 import com.kshitij.collegeerp.models.fee.entity.PaymentStatus;
 import com.kshitij.collegeerp.models.subject.repository.SubjectOfferingRepository;
 import com.kshitij.collegeerp.models.attendance.repository.AttendanceSessionRepository;
+import com.kshitij.collegeerp.models.attendance.repository.AttendanceRecordRepository;
+import com.kshitij.collegeerp.models.attendance.entity.AttendanceStatus;
+import com.kshitij.collegeerp.models.assignment.repository.AssignmentSubmissionRepository;
+import com.kshitij.collegeerp.models.exam.repository.MarksRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -49,6 +53,10 @@ public class DashboardServiceImpl implements DashboardService {
 
     private final SubjectOfferingRepository subjectOfferingRepository;
     private final AttendanceSessionRepository attendanceSessionRepository;
+
+    private final AttendanceRecordRepository attendanceRecordRepository;
+    private final AssignmentSubmissionRepository submissionRepository;
+    private final MarksRepository marksRepository;
 
     @Override
     public DashboardResponse getDashboard(Authentication authentication) {
@@ -108,9 +116,51 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     private DashboardResponse getStudentDashboard(User user) {
-        throw new UnsupportedOperationException(
-                "Student dashboard is not implemented yet."
-        );
+
+        var student = studentRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
+
+        // Attendance percentage
+        long total = attendanceRecordRepository.countByStudentId(student.getId());
+        long present = attendanceRecordRepository
+                .countByStudentIdAndStatus(student.getId(), AttendanceStatus.PRESENT)
+                + attendanceRecordRepository
+                .countByStudentIdAndStatus(student.getId(), AttendanceStatus.LATE);
+        double percentage = total == 0 ? 0.0 : (present * 100.0) / total;
+
+        // Assignments submitted
+        long assignmentsSubmitted = submissionRepository.findByStudentId(student.getId()).size();
+
+        // Pending fee
+        long pendingFee = feeInvoiceRepository
+                .findByStudentId(student.getId())
+                .stream()
+                .filter(i -> i.getPaymentStatus() != PaymentStatus.PAID)
+                .mapToLong(i -> i.getPendingAmount().longValue())
+                .sum();
+
+        // Books issued
+        long booksIssued = bookIssueRepository
+                .findByStudentIdAndStatus(student.getId(), com.kshitij.collegeerp.models.library.entity.IssueStatus.ISSUED)
+                .size();
+
+        // Exams appeared
+        long examsAppeared = marksRepository.findByStudentId(student.getId()).size();
+
+        return com.kshitij.collegeerp.dashboard.dto.StudentDashboardResponse.builder()
+                .studentName(student.getFullName())
+                .programName(student.getProgram().getName())
+                .sectionName(student.getSection().getName())
+                .semesterNumber(student.getSemester().getSemesterNumber())
+                .rollNumber(student.getRollNumber())
+                .registrationNumber(student.getRegistrationNumber())
+                .overallAttendancePercentage(Math.round(percentage * 100.0) / 100.0)
+                .totalAssignmentsSubmitted(assignmentsSubmitted)
+                .pendingFeeAmount(pendingFee)
+                .booksCurrentlyIssued(booksIssued)
+                .totalExamsAppeared(examsAppeared)
+                .build();
+
     }
 
     private DashboardResponse getHodDashboard(User user) {

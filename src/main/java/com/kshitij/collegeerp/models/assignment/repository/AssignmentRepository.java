@@ -8,4 +8,6 @@ import java.util.List;
 public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
     List<Assignment> findBySubjectOfferingId(Long subjectOfferingId);
     List<Assignment> findBySubjectOfferingSectionId(Long sectionId);
+    List<Assignment> findBySubjectOfferingSectionIdAndActiveTrue(Long sectionId);
+
 }
