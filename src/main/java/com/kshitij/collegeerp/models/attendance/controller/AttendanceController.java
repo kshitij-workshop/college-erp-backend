@@ -120,6 +120,17 @@ public class AttendanceController {
         );
     }
 
+    @GetMapping("/my/dashboard")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<ApiResponse<StudentAttendanceDashboardResponse>> getMyAttendanceDashboard() {
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Attendance dashboard fetched successfully",
+                        attendanceService.getStudentDashboard()
+                )
+        );
+    }
+
     @GetMapping("/history")
     @PreAuthorize("hasAnyRole('ADMIN','FACULTY')")
     public ResponseEntity<ApiResponse<List<AttendanceHistoryResponse>>>

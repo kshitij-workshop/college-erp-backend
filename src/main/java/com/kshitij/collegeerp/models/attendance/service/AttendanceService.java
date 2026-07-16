@@ -667,6 +667,89 @@ public class AttendanceService {
                 .build();
     }
 
+    public StudentAttendanceDashboardResponse getStudentDashboard(){
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        Student student = studentRepository.findByUser_Email(email);
+
+        List<AttendanceRecord> records =
+                recordRepository.findByStudentId(student.getId());
+
+        int totalClasses = records.size();
+
+        int presentClasses = (int) records.stream()
+                .filter(r ->
+                        r.getStatus() == AttendanceStatus.PRESENT ||
+                                r.getStatus() == AttendanceStatus.LATE
+                )
+                .count();
+
+        double overallPercentage = totalClasses == 0
+                ? 0
+                : (presentClasses * 100.0) / totalClasses;
+
+        Map<SubjectOffering, List<AttendanceRecord>> grouped =
+                records.stream()
+                        .collect(Collectors.groupingBy(
+                                record -> record.getSession().getSubjectOffering()
+                        ));
+
+        List<StudentSubjectAttendanceResponse> subjects = new ArrayList<>();
+
+        for (Map.Entry<SubjectOffering, List<AttendanceRecord>> entry : grouped.entrySet()) {
+
+            SubjectOffering offering = entry.getKey();
+
+            List<AttendanceRecord> attendance = entry.getValue();
+
+            int total = attendance.size();
+
+            int present = (int) attendance.stream()
+                    .filter(r ->
+                            r.getStatus() == AttendanceStatus.PRESENT ||
+                                    r.getStatus() == AttendanceStatus.LATE
+                    )
+                    .count();
+
+            double percentage = total == 0
+                    ? 0
+                    : (present * 100.0) / total;
+
+            List<StudentAttendanceHistoryItemResponse> history =
+                    attendance.stream()
+                            .sorted(
+                                    Comparator.comparing(
+                                            (AttendanceRecord record) -> record.getSession().getSessionDate()
+                                    ).reversed()
+                            )
+                            .map(record -> StudentAttendanceHistoryItemResponse.builder()
+                                    .attendanceRecordId(record.getId())
+                                    .attendanceDate(record.getSession().getSessionDate())
+                                    .status(record.getStatus())
+                                    .build())
+                            .toList();
+
+            subjects.add(
+                    StudentSubjectAttendanceResponse.builder()
+                            .subjectOfferingId(offering.getId())
+                            .subjectCode(offering.getSubject().getCode())
+                            .subjectName(offering.getSubject().getName())
+                            .facultyName(offering.getFaculty().getFullName())
+                            .presentClasses(present)
+                            .totalClasses(total)
+                            .percentage(percentage)
+                            .attendanceHistory(history)
+                            .build()
+            );
+        }
+
+        return StudentAttendanceDashboardResponse.builder()
+                .overallPercentage(overallPercentage)
+                .presentClasses(presentClasses)
+                .totalClasses(totalClasses)
+                .subjects(subjects)
+                .build();
+    }
+
     private AttendanceStudentResponse mapStudent(
             Student student,
             AttendanceStatus status
