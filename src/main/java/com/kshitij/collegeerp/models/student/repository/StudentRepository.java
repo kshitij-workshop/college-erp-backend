@@ -26,4 +26,6 @@ public interface StudentRepository extends JpaRepository<Student, Long>,
     List<Student> findBySectionIdOrderByRegistrationNumber(Long sectionId);
 
     Student findByUser_Email(String userEmail);
+
+    List<Student> findByBatch_IdOrderByRegistrationNumberAsc(Long batchId);
 }

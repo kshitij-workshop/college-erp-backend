@@ -10,6 +10,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -39,8 +41,21 @@ public class SubjectOfferingController {
     }
 
     @GetMapping("/my")
-    @PreAuthorize("hasRole('FACULTY')")
+    @PreAuthorize("hasAnyRole('FACULTY', 'ADMIN')")
     public ResponseEntity<ApiResponse<List<SubjectOfferingResponse>>> getMyOfferings() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (isAdmin) {
+            return ResponseEntity.ok(
+                    ApiResponse.success(
+                            "Subject offerings fetched successfully",
+                            subjectOfferingService.getAll()
+                    )
+            );
+        }
         return ResponseEntity.ok(
                 ApiResponse.success("Assigned subject offerings fetched successfully",
                         subjectOfferingService.getMyOfferings()));

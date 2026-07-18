@@ -112,13 +112,17 @@ public class AttendanceController {
     }
 
     @GetMapping("/student/{studentId}")
-    public ResponseEntity<ApiResponse<List<AttendanceStudentHistoryResponse>>> getStudentAttendanceHistory(
-            @PathVariable Long studentId) {
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<StudentOverallAttendanceResponse>> getStudentOverallAttendance(@PathVariable Long studentId) {
         return ResponseEntity.ok(
-                ApiResponse.success("Attendance history fetched successfully"
-                , attendanceService.getStudentAttendanceHistory(studentId))
+                ApiResponse.success(
+                        "Student attendance fetched successfully",
+                        attendanceService.getStudentOverallAttendance(studentId)
+                )
         );
+
     }
+
 
     @GetMapping("/my/dashboard")
     @PreAuthorize("hasRole('STUDENT')")
@@ -142,6 +146,53 @@ public class AttendanceController {
                         attendanceService.getAttendanceHistory()
                 )
         );
+    }
+
+    @GetMapping("/analytics/{subjectOfferingId}")
+    @PreAuthorize("hasAnyRole('ADMIN','FACULTY')")
+    public ResponseEntity<ApiResponse<List<StudentAttendanceAnalyticsResponse>>> getAttendanceAnalytics(
+            @PathVariable Long subjectOfferingId) {
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Attendance analytics fetched successfully",
+                        attendanceService.getAttendanceAnalytics(subjectOfferingId)
+                )
+        );
+    }
+
+    @GetMapping("/student/{studentId}/subject/{subjectOfferingId}")
+    @PreAuthorize("hasAnyRole('ADMIN','FACULTY')")
+    public ResponseEntity<ApiResponse<StudentSubjectAttendanceDetailsResponse>>
+    getStudentSubjectAttendance(
+            @PathVariable Long studentId,
+            @PathVariable Long subjectOfferingId) {
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Student attendance fetched successfully",
+                        attendanceService.getStudentSubjectAttendance(
+                                studentId,
+                                subjectOfferingId
+                        )
+                )
+        );
+    }
+
+    @GetMapping("/analytics/batch/{batchId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<List<BatchAttendanceAnalyticsResponse>>>
+    getBatchAttendanceAnalytics(
+            @PathVariable Long batchId
+    ) {
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Batch attendance analytics fetched successfully",
+                        attendanceService.getBatchAttendanceAnalytics(batchId)
+                )
+        );
+
     }
 
     @GetMapping("/session/{sessionId}")

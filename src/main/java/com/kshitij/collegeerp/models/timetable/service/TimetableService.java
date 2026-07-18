@@ -365,6 +365,7 @@ public class TimetableService {
 
                 .sectionId(entry.getSubjectOffering().getSection().getId())
                 .sectionName(entry.getSubjectOffering().getSection().getName())
+                .departmentCode(entry.getSubjectOffering().getSection().getSemester().getBatch().getProgram().getDepartment().getCode())
 
                 .programId(
                         entry.getSubjectOffering()

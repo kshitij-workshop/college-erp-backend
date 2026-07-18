@@ -46,4 +46,5 @@ public interface FacultyRepository
 
     List<Faculty>findByDepartmentId(Long departmentId);
 
+    Faculty findByUser_Email(String email);
 }

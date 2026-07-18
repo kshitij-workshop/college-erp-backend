@@ -107,6 +107,7 @@ public class DashboardServiceImpl implements DashboardService {
                 .facultyName(faculty.getFullName())
                 .employeeCode(faculty.getEmployeeCode())
                 .departmentName(faculty.getDepartment().getName())
+                .designation(faculty.getDesignation().name())
                 .totalSubjectsAssigned(subjectsAssigned)
                 .totalAttendanceSessionsTaken(sessionsTaken)
                 .totalAssignmentsCreated(assignmentsCreated)

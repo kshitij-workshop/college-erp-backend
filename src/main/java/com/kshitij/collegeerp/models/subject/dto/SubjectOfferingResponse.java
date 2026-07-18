@@ -14,6 +14,8 @@ public class SubjectOfferingResponse {
     private Long facultyId;
     private String facultyName;
     private String academicSession;
+    private String batchName;
+    private String departmentCode;
     private Long programId;
     private String programName;
     private Integer semesterNumber;

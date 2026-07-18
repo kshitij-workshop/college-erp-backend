@@ -1,5 +1,7 @@
 package com.kshitij.collegeerp.models.attendance.service;
 
+import com.kshitij.collegeerp.academic.batch.entity.Batch;
+import com.kshitij.collegeerp.academic.batch.repository.BatchRepository;
 import com.kshitij.collegeerp.models.attendance.dto.*;
 import com.kshitij.collegeerp.models.attendance.entity.AttendanceRecord;
 import com.kshitij.collegeerp.models.attendance.entity.AttendanceSession;
@@ -7,6 +9,8 @@ import com.kshitij.collegeerp.models.attendance.entity.AttendanceStatus;
 import com.kshitij.collegeerp.models.attendance.repository.AttendanceRecordRepository;
 import com.kshitij.collegeerp.models.attendance.repository.AttendanceSessionRepository;
 import com.kshitij.collegeerp.common.exception.ResourceNotFoundException;
+import com.kshitij.collegeerp.models.faculty.entity.Faculty;
+import com.kshitij.collegeerp.models.faculty.repository.FacultyRepository;
 import com.kshitij.collegeerp.models.student.entity.Student;
 import com.kshitij.collegeerp.models.student.repository.StudentRepository;
 import com.kshitij.collegeerp.models.subject.entity.Subject;
@@ -16,6 +20,7 @@ import com.kshitij.collegeerp.models.timetable.entity.TimetableEntry;
 import com.kshitij.collegeerp.models.timetable.repository.TimetableEntryRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -36,6 +41,8 @@ public class AttendanceService {
     private final SubjectOfferingRepository subjectOfferingRepository;
     private final StudentRepository studentRepository;
     private final TimetableEntryRepository timetableEntryRepository;
+    private final FacultyRepository facultyRepository;
+    private final BatchRepository batchRepository;
 
     @Transactional
     public AttendanceSessionResponse markAttendance(MarkAttendanceRequest request) {
@@ -749,6 +756,282 @@ public class AttendanceService {
                 .subjects(subjects)
                 .build();
     }
+
+    public List<StudentAttendanceAnalyticsResponse> getAttendanceAnalytics(Long subjectOfferingId) {
+
+        SubjectOffering subjectOffering = subjectOfferingRepository.findById(subjectOfferingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Subject offering not found"));
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin) {
+
+            String email = authentication.getName();
+
+            Faculty faculty = facultyRepository.findByUser_Email(email);
+
+            if (!subjectOffering.getFaculty().getId().equals(faculty.getId())) {
+                throw new RuntimeException("You are not allowed to view attendance analytics for this subject.");
+            }
+        }
+
+        List<AttendanceRecord> records =
+                recordRepository.findBySession_SubjectOffering_Id(subjectOfferingId);
+
+        Map<Student, List<AttendanceRecord>> groupedRecords =
+                records.stream()
+                        .collect(Collectors.groupingBy(AttendanceRecord::getStudent));
+
+        return groupedRecords.entrySet()
+                .stream()
+                .map(entry -> {
+
+                    Student student = entry.getKey();
+
+                    List<AttendanceRecord> attendanceRecords = entry.getValue();
+
+                    int totalClasses = attendanceRecords.size();
+
+                    int presentClasses = (int) attendanceRecords.stream()
+                            .filter(record ->
+                                    record.getStatus() == AttendanceStatus.PRESENT ||
+                                            record.getStatus() == AttendanceStatus.LATE)
+                            .count();
+
+                    double percentage = totalClasses == 0
+                            ? 0
+                            : Math.round((presentClasses * 100.0 / totalClasses) * 100) / 100.0;
+
+                    return StudentAttendanceAnalyticsResponse.builder()
+                            .studentId(student.getId())
+                            .studentName(student.getFullName())
+                            .registrationNumber(student.getRegistrationNumber())
+                            .presentClasses(presentClasses)
+                            .totalClasses(totalClasses)
+                            .percentage(percentage)
+                            .build();
+                })
+                .sorted(Comparator.comparing(StudentAttendanceAnalyticsResponse::getRegistrationNumber))
+                .toList();
+    }
+
+    public StudentSubjectAttendanceDetailsResponse getStudentSubjectAttendance(
+            Long studentId,
+            Long subjectOfferingId) {
+
+        SubjectOffering subjectOffering = subjectOfferingRepository.findById(subjectOfferingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Subject offering not found"));
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin) {
+
+            String email = authentication.getName();
+
+            Faculty faculty = facultyRepository.findByUser_Email(email);
+
+            if (!subjectOffering.getFaculty().getId().equals(faculty.getId())) {
+                throw new AccessDeniedException(
+                        "You are not allowed to view this student's attendance."
+                );
+            }
+        }
+
+        List<AttendanceRecord> records =
+                recordRepository.findByStudent_IdAndSession_SubjectOffering_Id(
+                        studentId,
+                        subjectOfferingId
+                );
+
+        if (records.isEmpty()) {
+            throw new ResourceNotFoundException("Attendance not found.");
+        }
+
+        Student student = records.getFirst().getStudent();
+
+        int totalClasses = records.size();
+
+        int presentClasses = (int) records.stream()
+                .filter(record ->
+                        record.getStatus() == AttendanceStatus.PRESENT ||
+                                record.getStatus() == AttendanceStatus.LATE)
+                .count();
+
+        double percentage = totalClasses == 0
+                ? 0
+                : Math.round((presentClasses * 100.0 / totalClasses) * 100) / 100.0;
+
+        List<StudentAttendanceHistoryItemResponse> history =
+                records.stream()
+                        .sorted(
+                                Comparator.comparing(
+                                        (AttendanceRecord record) ->
+                                                record.getSession().getSessionDate()
+                                ).reversed()
+                        )
+                        .map(record ->
+                                StudentAttendanceHistoryItemResponse.builder()
+                                        .attendanceRecordId(record.getId())
+                                        .attendanceDate(record.getSession().getSessionDate())
+                                        .status(record.getStatus())
+                                        .build()
+                        )
+                        .toList();
+
+        return StudentSubjectAttendanceDetailsResponse.builder()
+                .studentId(student.getId())
+                .studentName(student.getFullName())
+                .registrationNumber(student.getRegistrationNumber())
+                .subjectCode(subjectOffering.getSubject().getCode())
+                .subjectName(subjectOffering.getSubject().getName())
+                .facultyName(subjectOffering.getFaculty().getFullName())
+                .presentClasses(presentClasses)
+                .totalClasses(totalClasses)
+                .percentage(percentage)
+                .attendanceHistory(history)
+                .build();
+    }
+
+
+    public List<BatchAttendanceAnalyticsResponse> getBatchAttendanceAnalytics(Long batchId) {
+
+        batchRepository.findById(batchId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Batch not found"));
+
+        List<Student> students =
+                studentRepository.findByBatch_IdOrderByRegistrationNumberAsc(batchId);
+
+        List<AttendanceRecord> attendanceRecords =
+                recordRepository.findByStudent_Batch_Id(batchId);
+
+        Map<Long, List<AttendanceRecord>> attendanceMap =
+                attendanceRecords.stream()
+                        .collect(Collectors.groupingBy(
+                                record -> record.getStudent().getId()
+                        ));
+
+        return students.stream()
+                .map(student -> {
+
+                    List<AttendanceRecord> records =
+                            attendanceMap.getOrDefault(
+                                    student.getId(),
+                                    Collections.emptyList()
+                            );
+
+                    int totalClasses = records.size();
+
+                    int presentClasses = (int) records.stream()
+                            .filter(record ->
+                                    record.getStatus() == AttendanceStatus.PRESENT ||
+                                            record.getStatus() == AttendanceStatus.LATE
+                            )
+                            .count();
+
+                    double percentage = totalClasses == 0
+                            ? 0
+                            : Math.round(
+                            (presentClasses * 100.0 / totalClasses) * 100
+                    ) / 100.0;
+
+                    return BatchAttendanceAnalyticsResponse.builder()
+                            .studentId(student.getId())
+                            .studentName(student.getFullName())
+                            .registrationNumber(student.getRegistrationNumber())
+                            .presentClasses(presentClasses)
+                            .totalClasses(totalClasses)
+                            .percentage(percentage)
+                            .build();
+
+                })
+                .toList();
+    }
+
+
+    public StudentOverallAttendanceResponse getStudentOverallAttendance(Long studentId) {
+
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Student not found"));
+
+        List<AttendanceRecord> records =
+                recordRepository.findByStudentId(studentId);
+
+        int totalClasses = records.size();
+
+        int presentClasses = (int) records.stream()
+                .filter(record ->
+                        record.getStatus() == AttendanceStatus.PRESENT ||
+                                record.getStatus() == AttendanceStatus.LATE)
+                .count();
+
+        double overallPercentage = totalClasses == 0
+                ? 0
+                : Math.round((presentClasses * 100.0 / totalClasses) * 100) / 100.0;
+
+        Map<SubjectOffering, List<AttendanceRecord>> grouped =
+                records.stream()
+                        .collect(Collectors.groupingBy(
+                                record -> record.getSession().getSubjectOffering()
+                        ));
+
+        List<StudentSubjectAttendanceSummaryResponse> subjects =
+                grouped.entrySet()
+                        .stream()
+                        .map(entry -> {
+
+                            SubjectOffering offering = entry.getKey();
+
+                            List<AttendanceRecord> attendance =
+                                    entry.getValue();
+
+                            int subjectTotal = attendance.size();
+
+                            int subjectPresent = (int) attendance.stream()
+                                    .filter(record ->
+                                            record.getStatus() == AttendanceStatus.PRESENT ||
+                                                    record.getStatus() == AttendanceStatus.LATE)
+                                    .count();
+
+                            double percentage = subjectTotal == 0
+                                    ? 0
+                                    : Math.round((subjectPresent * 100.0 / subjectTotal) * 100) / 100.0;
+
+                            return StudentSubjectAttendanceSummaryResponse.builder()
+                                    .subjectOfferingId(offering.getId())
+                                    .subjectCode(offering.getSubject().getCode())
+                                    .subjectName(offering.getSubject().getName())
+                                    .presentClasses(subjectPresent)
+                                    .totalClasses(subjectTotal)
+                                    .percentage(percentage)
+                                    .build();
+
+                        })
+                        .sorted(
+                                Comparator.comparing(
+                                        StudentSubjectAttendanceSummaryResponse::getSubjectCode
+                                )
+                        )
+                        .toList();
+
+        return StudentOverallAttendanceResponse.builder()
+                .studentId(student.getId())
+                .studentName(student.getFullName())
+                .registrationNumber(student.getRegistrationNumber())
+                .presentClasses(presentClasses)
+                .totalClasses(totalClasses)
+                .overallPercentage(overallPercentage)
+                .subjects(subjects)
+                .build();
+    }
+
 
     private AttendanceStudentResponse mapStudent(
             Student student,

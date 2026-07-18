@@ -159,6 +159,8 @@ public class SubjectOfferingService {
                 .facultyId(offering.getFaculty().getId())
                 .facultyName(offering.getFaculty().getFullName())
                 .academicSession(offering.getAcademicSession())
+                .batchName(offering.getSection().getSemester().getBatch().getName())
+                .departmentCode(offering.getSection().getSemester().getBatch().getProgram().getDepartment().getCode())
                 .active(offering.isActive())
                 .build();
     }

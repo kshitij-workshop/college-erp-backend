@@ -13,5 +13,14 @@ public interface AttendanceRecordRepository extends JpaRepository<AttendanceReco
     long countByStudentIdAndStatus(Long studentId, AttendanceStatus status);
     long countByStudentId(Long studentId);
 
+    List<AttendanceRecord> findBySession_SubjectOffering_Id(Long subjectOfferingId);
+
+    List<AttendanceRecord> findByStudent_IdAndSession_SubjectOffering_Id(
+            Long studentId,
+            Long subjectOfferingId
+    );
+
+    List<AttendanceRecord> findByStudent_Batch_Id(Long batchId);
+
 
 }
