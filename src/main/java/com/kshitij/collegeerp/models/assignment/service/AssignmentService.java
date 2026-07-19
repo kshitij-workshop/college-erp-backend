@@ -190,6 +190,10 @@ public class AssignmentService {
             existing.setSubmissionText(request.getSubmissionText());
             existing.setSubmittedAt(LocalDateTime.now());
             existing.setStatus(SubmissionStatus.RESUBMITTED);
+
+            existing.setMarksAwarded(null);
+            existing.setFeedback(null);
+           
             return mapSubmissionToResponse(submissionRepository.save(existing));
         }
 

@@ -25,6 +25,7 @@ import com.kshitij.collegeerp.models.student.specification.StudentSpecification;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -272,5 +273,11 @@ public class StudentService {
     }
 
 
+    public StudentResponse getCurrentStudent(Authentication authentication) {
+        String email = authentication.getName();
 
+        Student student = studentRepository.findByUser_Email(email);
+
+        return mapToResponse(student);
+    }
 }

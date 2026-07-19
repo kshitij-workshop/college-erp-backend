@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -118,4 +119,13 @@ public class StudentController {
         return ResponseEntity.ok(
                 ApiResponse.success("Student deleted successfully", null));
     }
+
+    @GetMapping("/me")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<ApiResponse<StudentResponse>> me(Authentication authentication) {
+        return ResponseEntity.ok(
+                ApiResponse.success("Student fetched successfully", studentService.getCurrentStudent(authentication))
+        );
+    }
+
 }
