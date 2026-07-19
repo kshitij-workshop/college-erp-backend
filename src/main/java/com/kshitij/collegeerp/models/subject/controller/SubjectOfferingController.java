@@ -5,6 +5,7 @@ import com.kshitij.collegeerp.academic.section.service.SectionService;
 import com.kshitij.collegeerp.common.response.ApiResponse;
 import com.kshitij.collegeerp.models.subject.dto.SubjectOfferingRequest;
 import com.kshitij.collegeerp.models.subject.dto.SubjectOfferingResponse;
+import com.kshitij.collegeerp.models.subject.entity.SubjectOffering;
 import com.kshitij.collegeerp.models.subject.service.SubjectOfferingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -110,5 +111,12 @@ public class SubjectOfferingController {
         subjectOfferingService.delete(id);
         return ResponseEntity.ok(
                 ApiResponse.success("Subject offering deleted successfully", null));
+    }
+
+    @GetMapping("/my-department")
+    public ResponseEntity<List<SubjectOfferingResponse>> getMyDepartmentSubjectOfferings() {
+        return ResponseEntity.ok(
+                subjectOfferingService.getMyDepartmentSubjectOfferings()
+        );
     }
 }

@@ -3,6 +3,8 @@ package com.kshitij.collegeerp.models.attendance.repository;
 import com.kshitij.collegeerp.models.attendance.dto.AttendanceStudentHistoryResponse;
 import com.kshitij.collegeerp.models.attendance.entity.AttendanceRecord;
 import com.kshitij.collegeerp.models.attendance.entity.AttendanceStatus;
+import com.kshitij.collegeerp.models.timetable.entity.DayOfWeek;
+import com.kshitij.collegeerp.models.timetable.entity.TimetableEntry;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -21,6 +23,8 @@ public interface AttendanceRecordRepository extends JpaRepository<AttendanceReco
     );
 
     List<AttendanceRecord> findByStudent_Batch_Id(Long batchId);
+
+
 
 
 }

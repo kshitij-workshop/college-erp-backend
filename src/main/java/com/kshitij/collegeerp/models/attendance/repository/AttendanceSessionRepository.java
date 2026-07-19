@@ -22,4 +22,9 @@ public interface AttendanceSessionRepository extends JpaRepository<AttendanceSes
     findBySubjectOfferingFacultyEmailOrderBySessionDateDescStartTimeDesc(
             String email
     );
+
+    List<AttendanceSession>
+    findBySubjectOffering_Section_Semester_Batch_Program_Department_IdOrderBySessionDateDescStartTimeDesc(
+            Long departmentId
+    );
 }

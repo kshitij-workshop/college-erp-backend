@@ -2,6 +2,8 @@ package com.kshitij.collegeerp.models.attendance.service;
 
 import com.kshitij.collegeerp.academic.batch.entity.Batch;
 import com.kshitij.collegeerp.academic.batch.repository.BatchRepository;
+import com.kshitij.collegeerp.auth.entity.Role;
+import com.kshitij.collegeerp.auth.entity.User;
 import com.kshitij.collegeerp.models.attendance.dto.*;
 import com.kshitij.collegeerp.models.attendance.entity.AttendanceRecord;
 import com.kshitij.collegeerp.models.attendance.entity.AttendanceSession;
@@ -9,6 +11,7 @@ import com.kshitij.collegeerp.models.attendance.entity.AttendanceStatus;
 import com.kshitij.collegeerp.models.attendance.repository.AttendanceRecordRepository;
 import com.kshitij.collegeerp.models.attendance.repository.AttendanceSessionRepository;
 import com.kshitij.collegeerp.common.exception.ResourceNotFoundException;
+import com.kshitij.collegeerp.models.faculty.entity.Designation;
 import com.kshitij.collegeerp.models.faculty.entity.Faculty;
 import com.kshitij.collegeerp.models.faculty.repository.FacultyRepository;
 import com.kshitij.collegeerp.models.student.entity.Student;
@@ -184,21 +187,20 @@ public class AttendanceService {
                 SecurityContextHolder.getContext().getAuthentication();
 
         String email = authentication.getName();
+        Faculty faculty = facultyRepository.findByUser_Email(email);
 
         boolean isAdmin = authentication.getAuthorities()
                 .stream()
                 .anyMatch(authority ->
                         authority.getAuthority().equals("ROLE_ADMIN"));
 
-        List<TimetableEntry> classes = isAdmin ?
-                timetableEntryRepository
-                        .findByDayOfWeekOrderByTimeSlotStartTime(day) :
+        List<TimetableEntry> classes;
 
-                timetableEntryRepository
-                        .findBySubjectOfferingFacultyEmailAndDayOfWeekOrderByTimeSlotStartTime(
-                                email,
-                                day
-                        );
+        if(isAdmin) classes = timetableEntryRepository.findByDayOfWeekOrderByTimeSlotStartTime(day);
+        else if (faculty.getDesignation() == Designation.HOD) {
+            classes = timetableEntryRepository.findBySubjectOffering_Section_Semester_Batch_Program_Department_IdAndDayOfWeekOrderByTimeSlot_StartTime(faculty.getDepartment().getId(), day);
+        }
+        else classes = timetableEntryRepository.findBySubjectOfferingFacultyEmailAndDayOfWeekOrderByTimeSlotStartTime(email, day);
 
         return classes.stream()
                 .map(entry -> mapToFacultyClassResponse(entry, date))
@@ -307,6 +309,7 @@ public class AttendanceService {
                 SecurityContextHolder.getContext().getAuthentication();
 
         String email = authentication.getName();
+        Faculty faculty = facultyRepository.findByUser_Email(email);
 
         boolean isAdmin = authentication.getAuthorities()
                 .stream()
@@ -318,6 +321,8 @@ public class AttendanceService {
         if (isAdmin) {
             sessions = sessionRepository
                     .findAllByOrderBySessionDateDescStartTimeDesc();
+        } else if(faculty.getDesignation() == Designation.HOD) {
+            sessions = sessionRepository.findBySubjectOffering_Section_Semester_Batch_Program_Department_IdOrderBySessionDateDescStartTimeDesc(faculty.getDepartment().getId());
         } else {
             sessions = sessionRepository
                     .findBySubjectOfferingFacultyEmailOrderBySessionDateDescStartTimeDesc(
@@ -512,6 +517,8 @@ public class AttendanceService {
                 .getContext()
                 .getAuthentication();
 
+        assert authentication != null;
+
         String loggedInEmail = authentication.getName();
 
         boolean isAdmin = authentication.getAuthorities()
@@ -519,15 +526,42 @@ public class AttendanceService {
                 .anyMatch(authority ->
                         authority.getAuthority().equals("ROLE_ADMIN"));
 
-        boolean isAssignedFaculty = offering.getFaculty()
-                .getEmail()
-                .equalsIgnoreCase(loggedInEmail);
-
-        if (!isAdmin && !isAssignedFaculty) {
-            throw new RuntimeException(
-                    "You are not authorized to perform this action.");
+        // Admin has unrestricted access
+        if (isAdmin) {
+            return;
         }
+
+        Faculty faculty = facultyRepository.findByUser_Email(loggedInEmail);
+
+        if (faculty == null) {
+            throw new AccessDeniedException("Faculty profile not found.");
+        }
+
+        boolean isAssignedFaculty = offering.getFaculty()
+                .getId()
+                .equals(faculty.getId());
+
+        boolean isHod = faculty.getDesignation() == Designation.HOD;
+
+        boolean sameDepartment = faculty.getDepartment()
+                .getId()
+                .equals(
+                        offering.getSection()
+                                .getSemester()
+                                .getBatch()
+                                .getProgram()
+                                .getDepartment()
+                                .getId()
+                );
+
+        if (isAssignedFaculty || (isHod && sameDepartment)) {
+            return;
+        }
+
+        throw new AccessDeniedException(
+                "You are not authorized to perform this action.");
     }
+
 
     private FacultyClassResponse mapToFacultyClassResponse(
             TimetableEntry entry, LocalDate date
@@ -762,21 +796,7 @@ public class AttendanceService {
         SubjectOffering subjectOffering = subjectOfferingRepository.findById(subjectOfferingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Subject offering not found"));
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        boolean isAdmin = authentication.getAuthorities().stream()
-                .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
-
-        if (!isAdmin) {
-
-            String email = authentication.getName();
-
-            Faculty faculty = facultyRepository.findByUser_Email(email);
-
-            if (!subjectOffering.getFaculty().getId().equals(faculty.getId())) {
-                throw new RuntimeException("You are not allowed to view attendance analytics for this subject.");
-            }
-        }
+        validateFacultyAccess(subjectOffering);
 
         List<AttendanceRecord> records =
                 recordRepository.findBySession_SubjectOffering_Id(subjectOfferingId);
@@ -825,23 +845,8 @@ public class AttendanceService {
         SubjectOffering subjectOffering = subjectOfferingRepository.findById(subjectOfferingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Subject offering not found"));
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        boolean isAdmin = authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-
-        if (!isAdmin) {
-
-            String email = authentication.getName();
-
-            Faculty faculty = facultyRepository.findByUser_Email(email);
-
-            if (!subjectOffering.getFaculty().getId().equals(faculty.getId())) {
-                throw new AccessDeniedException(
-                        "You are not allowed to view this student's attendance."
-                );
-            }
-        }
+        validateFacultyAccess(subjectOffering);
 
         List<AttendanceRecord> records =
                 recordRepository.findByStudent_IdAndSession_SubjectOffering_Id(
@@ -898,12 +903,59 @@ public class AttendanceService {
                 .build();
     }
 
+    private void validateBatchAccess(Batch batch) {
+
+        Authentication authentication = SecurityContextHolder
+                .getContext()
+                .getAuthentication();
+
+        assert authentication != null;
+
+        String loggedInEmail = authentication.getName();
+
+        boolean isAdmin = authentication.getAuthorities()
+                .stream()
+                .anyMatch(authority ->
+                        authority.getAuthority().equals("ROLE_ADMIN"));
+
+        // Admin has unrestricted access
+        if (isAdmin) {
+            return;
+        }
+
+        Faculty faculty = facultyRepository.findByUser_Email(loggedInEmail);
+
+        if (faculty == null) {
+            throw new AccessDeniedException("Faculty profile not found.");
+        }
+
+        boolean isHod = faculty.getDesignation() == Designation.HOD;
+
+        boolean sameDepartment = faculty.getDepartment()
+                .getId()
+                .equals(
+                        batch.getProgram()
+                                .getDepartment()
+                                .getId()
+                );
+
+        if (isHod && sameDepartment) {
+            return;
+        }
+
+        throw new AccessDeniedException(
+                "You are not authorized to access this batch."
+        );
+    }
+
 
     public List<BatchAttendanceAnalyticsResponse> getBatchAttendanceAnalytics(Long batchId) {
 
-        batchRepository.findById(batchId)
+        Batch batch = batchRepository.findById(batchId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Batch not found"));
+
+        validateBatchAccess(batch);
 
         List<Student> students =
                 studentRepository.findByBatch_IdOrderByRegistrationNumberAsc(batchId);

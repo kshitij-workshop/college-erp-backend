@@ -180,7 +180,7 @@ public class AttendanceController {
     }
 
     @GetMapping("/analytics/batch/{batchId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FACULTY')")
     public ResponseEntity<ApiResponse<List<BatchAttendanceAnalyticsResponse>>>
     getBatchAttendanceAnalytics(
             @PathVariable Long batchId

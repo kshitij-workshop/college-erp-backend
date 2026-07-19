@@ -1,12 +1,16 @@
 package com.kshitij.collegeerp.models.faculty.service;
 
+import com.kshitij.collegeerp.common.response.ApiResponse;
 import com.kshitij.collegeerp.common.response.PageResponse;
 import com.kshitij.collegeerp.models.faculty.dto.FacultyRequest;
 import com.kshitij.collegeerp.models.faculty.dto.FacultyResponse;
 import com.kshitij.collegeerp.models.faculty.dto.FacultySummaryResponse;
 import com.kshitij.collegeerp.models.faculty.entity.Designation;
+import com.kshitij.collegeerp.models.faculty.entity.Faculty;
 import com.kshitij.collegeerp.models.faculty.entity.FacultyStatus;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 
 public interface FacultyService {
 
@@ -29,4 +33,5 @@ public interface FacultyService {
 
     void deleteFaculty(Long facultyId);
 
+    FacultyResponse getCurrentFaculty(Authentication authentication);
 }

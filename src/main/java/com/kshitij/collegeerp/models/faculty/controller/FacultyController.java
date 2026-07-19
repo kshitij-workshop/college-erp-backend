@@ -6,6 +6,7 @@ import com.kshitij.collegeerp.models.faculty.dto.FacultyRequest;
 import com.kshitij.collegeerp.models.faculty.dto.FacultyResponse;
 import com.kshitij.collegeerp.models.faculty.dto.FacultySummaryResponse;
 import com.kshitij.collegeerp.models.faculty.entity.Designation;
+import com.kshitij.collegeerp.models.faculty.entity.Faculty;
 import com.kshitij.collegeerp.models.faculty.entity.FacultyStatus;
 import com.kshitij.collegeerp.models.faculty.service.FacultyService;
 import jakarta.validation.Valid;
@@ -15,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -120,6 +122,14 @@ public class FacultyController {
 
         );
 
+    }
+
+    @GetMapping("/me")
+    @PreAuthorize("hasRole('FACULTY')")
+    public ResponseEntity<ApiResponse<FacultyResponse>> me(Authentication authentication) {
+        return ResponseEntity.ok(
+                ApiResponse.success("Faculty Fetched successfully", facultyService.getCurrentFaculty(authentication))
+        );
     }
 
     @PutMapping("/{id}")

@@ -4,6 +4,7 @@ import com.kshitij.collegeerp.academic.section.dto.SectionResponse;
 import com.kshitij.collegeerp.academic.section.entity.Section;
 import com.kshitij.collegeerp.academic.section.repository.SectionRepository;
 import com.kshitij.collegeerp.common.exception.ResourceNotFoundException;
+import com.kshitij.collegeerp.models.faculty.entity.Designation;
 import com.kshitij.collegeerp.models.faculty.entity.Faculty;
 import com.kshitij.collegeerp.models.faculty.repository.FacultyRepository;
 import com.kshitij.collegeerp.models.subject.dto.SubjectOfferingRequest;
@@ -14,6 +15,8 @@ import com.kshitij.collegeerp.models.subject.repository.SubjectOfferingRepositor
 import com.kshitij.collegeerp.models.subject.repository.SubjectRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -118,6 +121,35 @@ public class SubjectOfferingService {
 
     public List<SubjectOfferingResponse> getBySection(Long sectionId) {
         return subjectOfferingRepository.findBySectionId(sectionId)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    public List<SubjectOfferingResponse> getMyDepartmentSubjectOfferings() {
+
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        String email = authentication.getName();
+
+        Faculty faculty = facultyRepository.findByUser_Email(email);
+
+        if (faculty == null) {
+            throw new AccessDeniedException("Faculty not found.");
+        }
+
+        if (faculty.getDesignation() != Designation.HOD) {
+            throw new AccessDeniedException(
+                    "Only HOD can access department subject offerings.");
+        }
+
+        Long departmentId = faculty.getDepartment().getId();
+
+        return subjectOfferingRepository
+                .findBySection_Semester_Batch_Program_Department_IdOrderBySubject_CodeAsc(
+                        departmentId
+                )
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
